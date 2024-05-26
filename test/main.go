@@ -1,44 +1,28 @@
 package main
 
 import (
+	"burakturkerdev/ftgo/src/common/connection"
 	"burakturkerdev/ftgo/src/common/messages"
-	"encoding/json"
 	"net"
 )
 
 func main() {
 	conn, err := net.Dial("tcp", "localhost:7373")
-
 	if err != nil {
 		panic("connection failed " + err.Error())
 	}
 
 	defer conn.Close()
-	bytes := messages.CMessageToBytes(messages.CListDirs)
-	bytes = append(bytes, []byte("/merhaba")...)
-	_, err = conn.Write(bytes)
 
-	if err != nil {
-		panic("fail" + err.Error())
-	}
+	c := connection.CreateConnection(conn)
 
-	buffer := make([]byte, 1024)
-
-	read, err := conn.Read(buffer)
-
-	if err != nil {
-		panic("failhere" + err.Error())
-	}
-
-	buffer = buffer[0:read]
-
-	for _, v := range buffer {
-		println("%x", v)
-	}
+	c.SendMessageWithData(messages.CListDirs, "/test")
 
 	files := []messages.FileInfo{}
 
-	json.Unmarshal(buffer, &files)
+	var result messages.Message
+
+	c.Read().GetMessage(&result).GetJson(&files)
 
 	for _, v := range files {
 		println(v.Name + " " + string(rune(v.Size)))

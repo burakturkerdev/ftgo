@@ -1,7 +1,6 @@
 package messages
 
 import (
-	"bytes"
 	"encoding/binary"
 )
 
@@ -10,47 +9,27 @@ const (
 	MessageBufferSize = 10
 )
 
-type ClientMessage uint32
-type ServerMessage uint32
+type Message uint32
 
 // They should be maximum 1 byte(0-127)
 const (
-	CListDirs ClientMessage = 12
-	CUpload   ClientMessage = 13
-	CDownload ClientMessage = 14
+	CListDirs Message = 12
+	CUpload   Message = 13
+	CDownload Message = 14
 
-	SUnauthorized ServerMessage = 21
-	SAuthenticate ServerMessage = 22
+	SUnAuthorized Message = 21
+	SAuthenticate Message = 22
+	Success       Message = 10
 )
 
-func CMessageToBytes(cm ClientMessage) []byte {
+func MessageToBytes(m Message) []byte {
 	buf := make([]byte, 4)
-	binary.BigEndian.PutUint32(buf, uint32(cm))
+	binary.BigEndian.PutUint32(buf, uint32(m))
 	return buf
-}
-
-func SMessageToBytes(sm ServerMessage) []byte {
-	buf := make([]byte, 4)
-	binary.BigEndian.PutUint32(buf, uint32(sm))
-	return buf
-}
-
-func Trim(b []byte) []byte {
-	var path []byte
-
-	nullIndex := bytes.IndexByte(b, 0x00)
-
-	if nullIndex != -1 {
-		path = b[:nullIndex]
-	} else {
-		path = b
-	}
-
-	return path
 }
 
 type FileInfo struct {
-	Name   string
-	IsFile bool
-	Size   int64
+	Name  string
+	IsDir bool
+	Size  int64
 }

@@ -2,8 +2,8 @@ package main
 
 import (
 	"burakturkerdev/ftgo/src/common/config"
+	"burakturkerdev/ftgo/src/common/connection"
 	"burakturkerdev/ftgo/src/common/messages"
-	"encoding/json"
 	"net"
 	"os"
 	"sync"
@@ -82,43 +82,25 @@ func acceptConnections(listener net.Listener) {
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
-	mbuf := make([]byte, 1024)
 
-	_, err := conn.Read(mbuf)
+	c := connection.CreateConnection(conn)
 
-	if err != nil {
-		println("Log => Reading from client is failed.")
-		return
-	}
+	var message messages.Message
 
-	// 4. bytes always contain message, first 3 bytes are always 0 bits they just lead to message.
-	m := uint32(mbuf[3])
-
-	message := messages.ClientMessage(m)
+	c.Read().GetMessage(&message)
 
 	// List dirs operation
 	if message == messages.CListDirs {
-		//For listing path, message always leading to path. So after 4 bytes, other bytes contain query path.
-		pathBuf := mbuf[4:]
-
-		pathString := string(messages.Trim(pathBuf))
-
-		files, err := os.ReadDir(mainConfig.Directory + pathString)
-
-		if err != nil {
-			println("Log => Client is trying to invalid path -> " + err.Error())
-		}
-
-		// Permission checks
+		// Start permission checks
 		if mainConfig.ReadPerm == ReadPermPassword {
-			conn.Write(messages.SMessageToBytes(messages.SAuthenticate))
+			c.SendMessage(messages.SAuthenticate)
 
-			password := make([]byte, 1024)
+			var password string
 
-			conn.Read(password)
+			c.Read().GetString(&password)
 
-			if string(messages.Trim(password)) != mainConfig.Password {
-				conn.Write(messages.SMessageToBytes(messages.SUnauthorized))
+			if password != mainConfig.Password {
+				c.SendMessage(messages.SUnAuthorized)
 				return
 			}
 		}
@@ -131,35 +113,36 @@ func handleConnection(conn net.Conn) {
 				}
 			}
 			if !allowed {
-				conn.Write(messages.SMessageToBytes(messages.SUnauthorized))
+				c.SendMessage(messages.SUnAuthorized)
 				return
 			}
 		}
-		// Permission checks
+		// End permission checks
+
+		var path string
+
+		c.GetString(&path)
+
+		files, err := os.ReadDir(mainConfig.Directory + path)
+
+		if err != nil {
+			println("Log => Client is trying to invalid path -> " + err.Error())
+		}
 
 		fileinfos := make([]messages.FileInfo, len(files))
-
 		//TO-DO file size not working.
 		for i, f := range files {
 			if !f.IsDir() {
-				fileinfos[i] = messages.FileInfo{Name: f.Name(), IsFile: f.IsDir(), Size: 0}
+				fileinfos[i] = messages.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 0}
 			} else {
-				stat, err := os.Stat(mainConfig.Directory + string(pathString) + f.Name())
+				stat, err := os.Stat(mainConfig.Directory + string(path) + f.Name())
 
 				if err != nil {
 					println("Log => Can't get size of file.")
 				}
-				fileinfos[i] = messages.FileInfo{Name: f.Name(), IsFile: f.IsDir(), Size: stat.Size()}
+				fileinfos[i] = messages.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: stat.Size()}
 			}
 		}
-
-		json, err := json.Marshal(fileinfos)
-
-		if err != nil {
-			println("Log => Can't marshal json.")
-			return
-		}
-
-		conn.Write(json)
+		c.SendJson(fileinfos)
 	}
 }

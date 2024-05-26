@@ -45,3 +45,7 @@ func InitializeConfig[T Config](c Config, path string) {
 		panic("Error => Can't read config file!")
 	}
 }
+
+func SaveConfig(c Config, path string) {
+
+}

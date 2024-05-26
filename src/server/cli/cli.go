@@ -57,3 +57,11 @@ func (r StatusResolver) resolve(head *LinkedCommand) {
 
 	println(build)
 }
+
+// Status
+type PortResolver struct {
+}
+
+func (r PortResolver) resolve(head *LinkedCommand) {
+
+}

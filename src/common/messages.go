@@ -4,21 +4,18 @@ import (
 	"encoding/binary"
 )
 
-// Client messages to server all messages exactly should be 10 bytes.
-const (
-	MessageBufferSize = 10
-)
-
 type Message uint32
 
 // They should be maximum 1 byte(0-127)
 const (
-	CListDirs Message = 12
-	CUpload   Message = 13
-	CDownload Message = 14
+	CListDirs       Message = 12
+	CUploadOverride Message = 13
+	CUploadMerge    Message = 14
+	CDownload       Message = 15
 
 	SUnAuthorized Message = 21
 	SAuthenticate Message = 22
+	BufferSize    Message = 24
 	Success       Message = 10
 )
 

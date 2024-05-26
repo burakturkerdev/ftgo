@@ -3,7 +3,7 @@ package main
 import (
 	"burakturkerdev/ftgo/src/common/config"
 	"burakturkerdev/ftgo/src/common/messages"
-	"encoding/binary"
+	"bytes"
 	"encoding/json"
 	"net"
 	"os"
@@ -27,6 +27,7 @@ func (c *ServerConfig) SetFieldsToDefault() {
 	c.Ports = []string{":7373"}
 	c.Password = ""
 	c.BufferSize = 2048
+	c.Directory = "/home/burak/ftgo/"
 }
 
 var wg sync.WaitGroup
@@ -74,40 +75,53 @@ func acceptConnections(listener net.Listener) {
 		if err != nil {
 			println("Log => Handshake failed with some client.")
 		}
-
 		go handleConnection(conn)
 	}
 }
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
+	mbuf := make([]byte, 1024)
 
-	buf := make([]byte, mainConfig.BufferSize*1000000)
-
-	_, err := conn.Read(buf)
+	_, err := conn.Read(mbuf)
 
 	if err != nil {
 		println("Log => Reading from client is failed.")
 		return
 	}
 
-	m := binary.LittleEndian.Uint32(buf[0:32])
+	// 4. bytes always contain message, first 3 bytes are always 0 bits
+	m := uint32(mbuf[3])
 
 	message := messages.ClientMessage(m)
 
 	if message == messages.ListDirs {
-		path := buf[33:]
+		pathBuf := mbuf[4:]
 
-		files, err := os.ReadDir(mainConfig.Directory + string(path))
+		// Trim zero bits from strings
+		var path []byte
+
+		nullIndex := bytes.IndexByte(pathBuf, 0x00)
+
+		if nullIndex != -1 {
+			path = pathBuf[:nullIndex]
+		} else {
+			path = pathBuf
+		}
+		// Trim end
+		pathString := string(path)
+
+		files, err := os.ReadDir(mainConfig.Directory + pathString)
 
 		if err != nil {
-			println("Log => Client is trying to invalid path.")
+			println("Log => Client is trying to invalid path -> " + err.Error())
 		}
 
 		//TO-DO PERMISSION CHECKS
 		//if perm {}
 		fileinfos := make([]messages.FileInfo, len(files))
 
+		//TO-DO file size not working.
 		for i, f := range files {
 			if !f.IsDir() {
 				fileinfos[i] = messages.FileInfo{Name: f.Name(), IsFile: f.IsDir(), Size: 0}
@@ -117,8 +131,7 @@ func handleConnection(conn net.Conn) {
 				if err != nil {
 					println("Log => Can't get size of file.")
 				}
-
-				fileinfos[i] = messages.FileInfo{Name: f.Name(), IsFile: f.IsDir(), Size: int(stat.Size())}
+				fileinfos[i] = messages.FileInfo{Name: f.Name(), IsFile: f.IsDir(), Size: stat.Size()}
 			}
 		}
 

@@ -9,10 +9,11 @@ const (
 
 type ClientMessage uint32
 
+// They should be maximum 1 byte(0-127)
 const (
-	ListDirs ClientMessage = 100
-	Upload   ClientMessage = 101
-	Download ClientMessage = 102
+	ListDirs ClientMessage = 12
+	Upload   ClientMessage = 13
+	Download ClientMessage = 14
 )
 
 func MessageToBytes(m ClientMessage) []byte {
@@ -24,5 +25,5 @@ func MessageToBytes(m ClientMessage) []byte {
 type FileInfo struct {
 	Name   string
 	IsFile bool
-	Size   int
+	Size   int64
 }

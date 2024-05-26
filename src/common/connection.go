@@ -1,7 +1,6 @@
-package connection
+package common
 
 import (
-	"burakturkerdev/ftgo/src/common/messages"
 	"encoding/json"
 	"net"
 )
@@ -28,6 +27,10 @@ func (c *Connection) Read() *Connection {
 	c.conn.Read(c.content)
 	c.content = trim(c.content)
 	c.readed = 0
+	// if content is empty, set message to default
+	if len(c.content) < 4 {
+		c.content = make([]byte, 4)
+	}
 	return c
 }
 
@@ -35,8 +38,8 @@ func (c *Connection) ReadFile(buffer []byte) {
 
 }
 
-func (c *Connection) GetMessage(m *messages.Message) *Connection {
-	*m = messages.Message(uint32(c.content[3]))
+func (c *Connection) GetMessage(m *Message) *Connection {
+	*m = Message(uint32(c.content[3]))
 	c.readed += 4
 	return c
 }
@@ -45,12 +48,12 @@ func (c *Connection) GetString(s *string) {
 	*s = string(c.content[c.readed:])
 }
 
-func (c *Connection) SendMessage(m messages.Message) {
-	c.conn.Write(messages.MessageToBytes(m))
+func (c *Connection) SendMessage(m Message) {
+	c.conn.Write(MessageToBytes(m))
 }
 
-func (c *Connection) SendMessageWithData(m messages.Message, s string) {
-	c.conn.Write(append(messages.MessageToBytes(m), []byte(s)...))
+func (c *Connection) SendMessageWithData(m Message, s string) {
+	c.conn.Write(append(MessageToBytes(m), []byte(s)...))
 }
 
 func (c *Connection) GetJson(t any) {
@@ -64,7 +67,7 @@ func (c *Connection) SendJson(t any) {
 	}
 	bytes := []byte{}
 
-	bytes = append(bytes, messages.MessageToBytes(messages.Success)...)
+	bytes = append(bytes, MessageToBytes(Success)...)
 
 	bytes = append(bytes, j...)
 

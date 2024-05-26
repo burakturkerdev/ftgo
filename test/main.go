@@ -1,8 +1,7 @@
 package main
 
 import (
-	"burakturkerdev/ftgo/src/common/connection"
-	"burakturkerdev/ftgo/src/common/messages"
+	"burakturkerdev/ftgo/src/common"
 	"net"
 )
 
@@ -14,13 +13,13 @@ func main() {
 
 	defer conn.Close()
 
-	c := connection.CreateConnection(conn)
+	c := common.CreateConnection(conn)
 
-	c.SendMessageWithData(messages.CListDirs, "/test")
+	c.SendMessageWithData(common.CListDirs, "/test")
 
-	files := []messages.FileInfo{}
+	files := []common.FileInfo{}
 
-	var result messages.Message
+	var result common.Message
 
 	c.Read().GetMessage(&result).GetJson(&files)
 

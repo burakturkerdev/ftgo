@@ -3,7 +3,6 @@ package main
 import (
 	"burakturkerdev/ftgo/src/common/config"
 	"burakturkerdev/ftgo/src/common/messages"
-	"bytes"
 	"encoding/json"
 	"net"
 	"os"
@@ -17,6 +16,7 @@ type ServerConfig struct {
 	ReadPerm   ReadPerm
 	Directory  string
 	Ports      []string
+	AllowedIps []string
 	Password   string
 	BufferSize int
 }
@@ -25,9 +25,10 @@ func (c *ServerConfig) SetFieldsToDefault() {
 	c.WritePerm = WritePermReadOnly
 	c.ReadPerm = ReadPermPassword
 	c.Ports = []string{":7373"}
-	c.Password = ""
+	c.Password = "test"
 	c.BufferSize = 2048
 	c.Directory = "/home/burak/ftgo/"
+	c.AllowedIps = []string{"1.1.1.1"}
 }
 
 var wg sync.WaitGroup
@@ -90,26 +91,16 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	// 4. bytes always contain message, first 3 bytes are always 0 bits
+	// 4. bytes always contain message, first 3 bytes are always 0 bits they just lead to message.
 	m := uint32(mbuf[3])
 
 	message := messages.ClientMessage(m)
 
-	if message == messages.ListDirs {
+	// List dirs operation
+	if message == messages.CListDirs {
 		pathBuf := mbuf[4:]
 
-		// Trim zero bits from strings
-		var path []byte
-
-		nullIndex := bytes.IndexByte(pathBuf, 0x00)
-
-		if nullIndex != -1 {
-			path = pathBuf[:nullIndex]
-		} else {
-			path = pathBuf
-		}
-		// Trim end
-		pathString := string(path)
+		pathString := string(messages.Trim(pathBuf))
 
 		files, err := os.ReadDir(mainConfig.Directory + pathString)
 
@@ -117,8 +108,34 @@ func handleConnection(conn net.Conn) {
 			println("Log => Client is trying to invalid path -> " + err.Error())
 		}
 
-		//TO-DO PERMISSION CHECKS
-		//if perm {}
+		// Permission checks
+		if mainConfig.ReadPerm == ReadPermPassword {
+			conn.Write(messages.SMessageToBytes(messages.SAuthenticate))
+
+			password := make([]byte, 1024)
+
+			conn.Read(password)
+
+			if string(messages.Trim(password)) != mainConfig.Password {
+				conn.Write(messages.SMessageToBytes(messages.SUnauthorized))
+				return
+			}
+		}
+		if mainConfig.ReadPerm == ReadPermIp {
+			var allowed bool
+			for _, v := range mainConfig.AllowedIps {
+				if v == conn.RemoteAddr().String() {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				conn.Write(messages.SMessageToBytes(messages.SUnauthorized))
+				return
+			}
+		}
+		// Permission checks
+
 		fileinfos := make([]messages.FileInfo, len(files))
 
 		//TO-DO file size not working.
@@ -126,7 +143,7 @@ func handleConnection(conn net.Conn) {
 			if !f.IsDir() {
 				fileinfos[i] = messages.FileInfo{Name: f.Name(), IsFile: f.IsDir(), Size: 0}
 			} else {
-				stat, err := os.Stat(mainConfig.Directory + string(path) + f.Name())
+				stat, err := os.Stat(mainConfig.Directory + string(pathString) + f.Name())
 
 				if err != nil {
 					println("Log => Can't get size of file.")

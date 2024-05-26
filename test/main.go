@@ -14,8 +14,8 @@ func main() {
 	}
 
 	defer conn.Close()
-	bytes := messages.MessageToBytes(messages.ListDirs)
-	bytes = append(bytes, []byte("bufferland")...)
+	bytes := messages.CMessageToBytes(messages.CListDirs)
+	bytes = append(bytes, []byte("/merhaba")...)
 	_, err = conn.Write(bytes)
 
 	if err != nil {
@@ -31,6 +31,10 @@ func main() {
 	}
 
 	buffer = buffer[0:read]
+
+	for _, v := range buffer {
+		println("%x", v)
+	}
 
 	files := []messages.FileInfo{}
 

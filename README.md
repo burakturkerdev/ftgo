@@ -38,6 +38,9 @@ ftgosv perm ip add <ip> # Adds ip for ip perm
 ftgosv perm password set <password> # Sets password for password perm
 ```
 
+## About Disclaimer
+FTGO is an open-source project designed for fast and secure file transfer. It utilizes a custom security layer with TCP rather than TLS for encryption, providing end-to-end encryption for file transfers. However, it's important to note that while FTGO strives to ensure security, as an open-source project, there's no absolute guarantee of security. While FTGO endeavors to provide a secure file transfer solution, users should exercise caution when transferring sensitive or important files. If security is a primary concern, it's advisable to explore alternative solutions or consult with security experts.
+
 ## License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE), which means that everyone is free to view, modify, distribute, and use the software for non-commercial purposes. Any derivative works must also be licensed under the GNU GPL. For more details, please refer to the [LICENSE](LICENSE) file.

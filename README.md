@@ -1,5 +1,5 @@
 # FtGo
-FtGo is a server and client application designed for secure file transfer. It utilizes a custom protocol that ensures end-to-end encryption for data transmission. This repository contains the file transfer protocol, server application, and client application.
+FtGo is server and client application designed for secure file transfer. It utilizes a custom protocol that ensures end-to-end encryption for data transmission. This repository contains the file transfer protocol, server application, and client application.
 
 ## Features
 - **Custom Protocol**: FtGo uses a custom file transfer protocol designed for secure and efficient data transmission.

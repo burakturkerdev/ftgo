@@ -49,7 +49,7 @@ func LoadConfig() error {
 		return err
 	}
 
-	common.InitializeConfig[ServerConfig](cfg, ".servercfg")
+	common.InitializeConfig[ServerConfig](cfg, cfgPath)
 
 	MainConfig = cfg
 

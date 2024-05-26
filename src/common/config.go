@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 )
 
@@ -46,6 +47,12 @@ func InitializeConfig[T Config](c Config, path string) {
 	}
 }
 
-func SaveConfig(c Config, path string) {
+func SaveConfig(c Config, path string) error {
+	j, err := json.Marshal(c)
 
+	if err != nil {
+		return errors.New("json marshal error")
+	}
+
+	return os.WriteFile(path, j, 0)
 }

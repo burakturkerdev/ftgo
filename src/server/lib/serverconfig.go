@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 )
 
+var cfgPath string = ".servercfg"
 var MainConfig *ServerConfig
 
 type ServerConfig struct {
@@ -17,6 +18,10 @@ type ServerConfig struct {
 	AllowedIps []string
 	Password   string
 	BufferSize int
+}
+
+func (c *ServerConfig) Save() error {
+	return common.SaveConfig(*c, cfgPath)
 }
 
 func (c *ServerConfig) SetFieldsToDefault() error {

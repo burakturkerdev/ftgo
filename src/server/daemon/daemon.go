@@ -3,6 +3,7 @@ package main
 import (
 	"burakturkerdev/ftgo/src/common"
 	"burakturkerdev/ftgo/src/server/lib"
+	"log"
 	"net"
 	"os"
 	"sync"
@@ -11,7 +12,10 @@ import (
 var wg sync.WaitGroup
 
 func startDaemon() {
-	lib.LoadConfig()
+	if err := lib.LoadConfig(); err != nil {
+		log.Fatal(err)
+	}
+
 	startServer()
 	wg.Wait()
 }

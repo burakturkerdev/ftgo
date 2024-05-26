@@ -2,7 +2,9 @@ package lib
 
 import (
 	"burakturkerdev/ftgo/src/common"
+	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 var MainConfig *ServerConfig
@@ -17,24 +19,36 @@ type ServerConfig struct {
 	BufferSize int
 }
 
-func (c *ServerConfig) SetFieldsToDefault() {
+func (c *ServerConfig) SetFieldsToDefault() error {
 	c.WritePerm = WritePermReadOnly
 	c.ReadPerm = ReadPermPassword
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	c.Directory = filepath.Join(home, "ftgo")
+
 	c.Ports = []string{":7373"}
+	c.AllowedIps = []string{"1.1.1.1"}
 	c.Password = "test"
 	c.BufferSize = 2048
-	c.Directory = "/home/burak/ftgo/"
-	c.AllowedIps = []string{"1.1.1.1"}
+
+	return nil
 }
 
-func LoadConfig() {
+func LoadConfig() error {
 	cfg := &ServerConfig{}
 
-	cfg.SetFieldsToDefault()
+	if err := cfg.SetFieldsToDefault(); err != nil {
+		return err
+	}
 
 	common.InitializeConfig[ServerConfig](cfg, ".servercfg")
 
 	MainConfig = cfg
+
+	return nil
 }
 
 func GetDaemonExecCommand() *exec.Cmd {

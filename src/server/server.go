@@ -96,9 +96,14 @@ func handleConnection(conn net.Conn) {
 
 	message := messages.ClientMessage(m)
 
+<<<<<<< HEAD
 	// List dirs operation
 	if message == messages.CListDirs {
 		//For listing path, message always leading to path. So after 4 bytes, other bytes contain query path.
+=======
+	if message == messages.ListDirs {
+		//For listing path, message always leading to path. So after 4 bytes, other bytes contain query path. 
+>>>>>>> c066997312f3b3eabb3e0a89098f49748f3bf281
 		pathBuf := mbuf[4:]
 
 		pathString := string(messages.Trim(pathBuf))

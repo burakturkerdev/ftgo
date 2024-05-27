@@ -3,6 +3,7 @@ package main
 import (
 	"burakturkerdev/ftgo/src/common"
 	"burakturkerdev/ftgo/src/server/lib"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -45,7 +46,7 @@ func acceptConnections(listener net.Listener) {
 		conn, err := listener.Accept()
 
 		if err != nil {
-			println("Log => Handshake failed with some client.")
+			fmt.Println("Log => Handshake failed with some client.")
 		}
 		go handleConnection(conn)
 	}
@@ -95,7 +96,7 @@ func handleConnection(conn net.Conn) {
 		files, err := os.ReadDir(lib.MainConfig.Directory + path)
 
 		if err != nil {
-			println("Log => Client is trying to invalid path -> " + err.Error())
+			fmt.Println("Log => Client is trying to invalid path -> " + err.Error())
 		}
 
 		fileinfos := make([]common.FileInfo, len(files))
@@ -107,7 +108,7 @@ func handleConnection(conn net.Conn) {
 				stat, err := os.Stat(lib.MainConfig.Directory + string(path) + f.Name())
 
 				if err != nil {
-					println("Log => Can't get size of file.")
+					fmt.Println("Log => Can't get size of file.")
 				}
 				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: stat.Size()}
 			}

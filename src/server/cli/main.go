@@ -3,6 +3,7 @@ package main
 import (
 	"burakturkerdev/ftgo/src/common"
 	"burakturkerdev/ftgo/src/server/lib"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -15,14 +16,14 @@ func main() {
 func loadResolver() common.Resolver {
 
 	if len(os.Args) <= 1 {
-		println(invalidMsg)
+		fmt.Println(invalidMsg)
 		os.Exit(0)
 	}
 
 	resolver, ok := resolvers[os.Args[1]]
 
 	if !ok {
-		println(invalidMsg)
+		fmt.Println(invalidMsg)
 		os.Exit(0)
 	}
 	return resolver

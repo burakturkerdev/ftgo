@@ -9,9 +9,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var invalidMsg string = "Invalid message, type ftgo help if you lost."
@@ -36,7 +33,7 @@ func (r ServeResolver) Resolve(head *common.LinkedCommand) {
 		return
 	}
 
-	println(string(o))
+	println("OK => Server started " + string(o))
 }
 
 // Status
@@ -429,32 +426,22 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 		setNewPassword := func() {
 			println("Set password: ")
 
-			password, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-
-			if err != nil {
-				println("Error reading password:", err)
-				return
-			}
+			password := lib.ReadPassword()
 
 			println("Again: ")
 
-			passwordC, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-
-			if err != nil {
-				println("Error reading password:", err)
-				return
-			}
+			passwordC := lib.ReadPassword()
 
 			if string(password) != string(passwordC) {
 				println("Passwords doesn't match!")
 				return
 			}
 
-			pwStr := hash(password)
+			pwStr := lib.GenerateHash(password)
 
 			lib.MainConfig.Password = pwStr
 
-			err = lib.MainConfig.Save()
+			err := lib.MainConfig.Save()
 
 			if err != nil {
 				println("Error => " + err.Error())
@@ -469,14 +456,9 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 		} else {
 			println("Enter old password: ")
 
-			password, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+			password := lib.ReadPassword()
 
-			if err != nil {
-				println("Error reading password:", err)
-				return
-			}
-
-			if validateHash([]byte(lib.MainConfig.Password), password) {
+			if lib.ValidateHash([]byte(lib.MainConfig.Password), password) {
 				println("Old password is not correct.")
 				return
 			}
@@ -484,18 +466,4 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 			setNewPassword()
 		}
 	}
-}
-
-func hash(i []byte) string {
-	hash, err := bcrypt.GenerateFromPassword(i, -1)
-
-	if err != nil {
-		log.Fatal("SECURITY ERROR / hashing not working.")
-	}
-
-	return string(hash)
-}
-
-func validateHash(h []byte, i []byte) bool {
-	return bcrypt.CompareHashAndPassword(h, i) != nil
 }

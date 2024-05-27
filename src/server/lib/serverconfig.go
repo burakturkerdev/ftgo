@@ -55,6 +55,7 @@ func LoadConfig() error {
 	return nil
 }
 
+// It will be implemented as os - specific.
 func GetDaemonExecCommand() *exec.Cmd {
 	return exec.Command("bash", "-c", "nohup ./ftgodaemon > /dev/null 2>&1 &")
 }

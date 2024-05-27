@@ -57,20 +57,22 @@ func handleConnection(conn net.Conn) {
 	c := common.CreateConnection(conn)
 
 	var message common.Message
-
 	c.Read().GetMessage(&message)
-
 	// List dirs operation
 	if message == common.CListDirs {
+
+		var path string
+		c.GetString(&path)
+
 		// Start permission checks
 		if lib.MainConfig.ReadPerm == lib.ReadPermPassword {
+
 			c.SendMessage(common.SAuthenticate)
 
 			var password string
+			c.Read().IgnoreMessage().GetString(&password)
 
-			c.Read().GetString(&password)
-
-			if password != lib.MainConfig.Password {
+			if !lib.ValidateHash([]byte(lib.MainConfig.Password), []byte(password)) {
 				c.SendMessage(common.SUnAuthorized)
 				return
 			}
@@ -89,10 +91,6 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 		// End permission checks
-
-		var path string
-
-		c.GetString(&path)
 
 		files, err := os.ReadDir(lib.MainConfig.Directory + path)
 

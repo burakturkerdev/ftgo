@@ -38,7 +38,8 @@ ftgosv perm read get # Gets the perm for write operations
 ftgosv perm list <perm> # Lists all usable perms
 ftgosv perm ip add <ip> # Adds ip for ip based perm
 ftgosv perm ip rm <ip> # Removes ip from allowed ip list
-ftgosv perm password set <password> # Sets password for password perm
+ftgosv perm ip list # Lists allowed ip's
+ftgosv perm password set <password> # Sets password for password authentication perm
 ```
 
 ## Disclaimer

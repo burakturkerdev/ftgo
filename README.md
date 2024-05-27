@@ -29,11 +29,11 @@ ftgosv status # Lists all server information
 ftgosv port add <port> # Adds port for listening
 ftgosv port rm <port> # Removes port
 ftgosv port list # Lists all ports
-ftgosv dir set <path> # Sets serving directory
-ftgosv dir get # Gets serving directory
-ftgosv perm write set <perm> # Sets perm for write operations
+ftgosv dir set <path> # Sets the serving directory
+ftgosv dir get # Gets the serving directory
+ftgosv perm write set <perm> # Sets the perm for write operations
 ftgosv perm write get # Gets the perm for write operations
-ftgosv perm read set <perm> # Sets perm for read operations
+ftgosv perm read set <perm> # Sets the perm for read operations
 ftgosv perm read get # Gets the perm for write operations
 ftgosv perm list <perm> # Lists all usable perms
 ftgosv perm ip add <ip> # Adds ip for ip based perm

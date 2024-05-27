@@ -36,7 +36,6 @@ func (c *ServerConfig) SetFieldsToDefault() error {
 
 	c.Ports = []string{":7373"}
 	c.AllowedIps = []string{"1.1.1.1"}
-	c.Password = "test"
 	c.BufferSize = 2048
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"burakturkerdev/ftgo/src/server/lib"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -15,6 +16,8 @@ var resolvers = map[string]common.Resolver{
 	"serve":  &ServeResolver{},
 	"status": &StatusResolver{},
 	"port":   &PortResolver{},
+	"dir":    &DirResolver{},
+	"perm":   &PermResolver{},
 }
 
 // Serve
@@ -69,6 +72,11 @@ func (r PortResolver) Resolve(head *common.LinkedCommand) {
 	add := "add"
 	rm := "rm"
 	list := "list"
+
+	if current.Command != add && current.Command != rm && current.Command != list {
+		println(invalidMsg)
+		return
+	}
 
 	addOrRemove := current.Command == add || current.Command == rm
 	// add or remove command takes 1 argument
@@ -130,16 +138,174 @@ func (r PortResolver) Resolve(head *common.LinkedCommand) {
 				return
 			}
 		}
-
 		println("Port not found!")
-		return
 	} else if current.Command == list {
 		for i, v := range lib.MainConfig.Ports {
 			display := strings.Replace(v, ":", "", -1)
 			println("Port" + strconv.Itoa(i) + " " + display)
 		}
+	}
+}
+
+// Dir
+
+type DirResolver struct {
+}
+
+func (r DirResolver) Resolve(head *common.LinkedCommand) {
+	current := head.Next
+
+	if current == nil {
+		println(invalidMsg)
 		return
 	}
 
-	println(invalidMsg)
+	//2 leafs, get and set
+	get := "get"
+	set := "set"
+
+	if current.Command != get && current.Command != set {
+		println(invalidMsg)
+		return
+	}
+
+	if current.Command == set && len(current.Args) == 0 {
+		println("Please give argument for directory. <directory-path>")
+		return
+	}
+
+	if current.Command == set {
+		path := current.Args[0]
+
+		stat, err := os.Stat(path)
+
+		if err != nil {
+			println("Path is invalid.")
+			return
+		}
+
+		if !stat.IsDir() {
+			println("Path should be directory.")
+		}
+
+		lib.MainConfig.Directory = path
+
+		err = lib.MainConfig.Save()
+
+		if err != nil {
+			println("Error => " + err.Error())
+			return
+		}
+
+		println("OK -> Directory set to: " + path)
+
+	} else if current.Command == get {
+		println("Current directory -> " + lib.MainConfig.Directory)
+	}
+}
+
+// Perm
+type PermResolver struct{}
+
+func (r PermResolver) Resolve(head *common.LinkedCommand) {
+	current := head.Next
+
+	if current == nil {
+		println(invalidMsg)
+		return
+	}
+
+	// 5 leafs write, read, list, ip, password
+	write := "write"
+	read := "read"
+	//list := "list"
+	//ip := "ip"
+	//password := "password"
+
+	if current.Command == write {
+		current = current.Next
+
+		if current == nil {
+			println(invalidMsg)
+			return
+		}
+
+		// 2 leafs set, get
+		set := "set"
+		get := "get"
+
+		if current.Command != set && current.Command != get {
+			println(invalidMsg)
+			return
+		}
+
+		if current.Command == set {
+			// need 1 arg
+			if len(current.Args) == 0 {
+				println("Specify perm for set.")
+				return
+			}
+
+			perm := lib.WritePerm(current.Args[0])
+
+			if lib.ValidWritePerm(perm) {
+				lib.MainConfig.WritePerm = perm
+				err := lib.MainConfig.Save()
+
+				if err != nil {
+					println("Error => " + err.Error())
+					return
+				}
+
+				println("Permission changed.")
+
+			} else {
+				println("Perm is not exist.")
+			}
+		} else if current.Command == get {
+			println(lib.MainConfig.WritePerm)
+		}
+	} else if current.Command == read {
+		current = current.Next
+
+		if current == nil {
+			println(invalidMsg)
+			return
+		}
+
+		// 2 leafs set, get
+		set := "set"
+		get := "get"
+
+		if current.Command != set && current.Command != get {
+			println(invalidMsg)
+			return
+		}
+
+		if current.Command == set {
+			// need 1 arg
+			if len(current.Args) == 0 {
+				println("Specify perm for set")
+				return
+			}
+
+			perm := lib.ReadPerm(current.Args[0])
+
+			if lib.ValidReadPerm(perm) {
+				lib.MainConfig.ReadPerm = perm
+				err := lib.MainConfig.Save()
+
+				if err != nil {
+					println("Error => " + err.Error())
+					return
+				}
+				println("Permission changed.")
+			} else {
+				println("Perm is not exist.")
+			}
+		} else if current.Command == get {
+			println(lib.MainConfig.ReadPerm)
+		}
+	}
+
 }

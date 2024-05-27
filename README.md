@@ -32,9 +32,12 @@ ftgosv port list # Lists all ports
 ftgosv dir set <path> # Sets serving directory
 ftgosv dir get # Gets serving directory
 ftgosv perm write set <perm> # Sets perm for write operations
+ftgosv perm write get # Gets the perm for write operations
 ftgosv perm read set <perm> # Sets perm for read operations
+ftgosv perm read get # Gets the perm for write operations
 ftgosv perm list <perm> # Lists all usable perms
-ftgosv perm ip add <ip> # Adds ip for ip perm
+ftgosv perm ip add <ip> # Adds ip for ip based perm
+ftgosv perm ip rm <ip> # Removes ip from allowed ip list
 ftgosv perm password set <password> # Sets password for password perm
 ```
 

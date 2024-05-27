@@ -1,6 +1,7 @@
 package main
 
 import (
+	"burakturkerdev/ftgo/src/common"
 	"burakturkerdev/ftgo/src/server/lib"
 	"fmt"
 	"net"
@@ -10,27 +11,17 @@ import (
 
 var invalidMsg string = "Invalid message, type ftgo help if you lost."
 
-var resolvers = map[string]Resolver{
+var resolvers = map[string]common.Resolver{
 	"serve":  &ServeResolver{},
 	"status": &StatusResolver{},
 	"port":   &PortResolver{},
-}
-
-type LinkedCommand struct {
-	command string
-	args    []string
-	next    *LinkedCommand
-}
-
-type Resolver interface {
-	resolve(head *LinkedCommand)
 }
 
 // Serve
 type ServeResolver struct {
 }
 
-func (r ServeResolver) resolve(head *LinkedCommand) {
+func (r ServeResolver) Resolve(head *common.LinkedCommand) {
 	o, err := lib.GetDaemonExecCommand().CombinedOutput()
 
 	if err != nil {
@@ -45,7 +36,7 @@ func (r ServeResolver) resolve(head *LinkedCommand) {
 type StatusResolver struct {
 }
 
-func (r StatusResolver) resolve(head *LinkedCommand) {
+func (r StatusResolver) Resolve(head *common.LinkedCommand) {
 	var portStatus string
 	for _, v := range lib.MainConfig.Ports {
 		_, err := net.Dial("tcp", "localhost"+v)
@@ -67,8 +58,8 @@ func (r StatusResolver) resolve(head *LinkedCommand) {
 type PortResolver struct {
 }
 
-func (r PortResolver) resolve(head *LinkedCommand) {
-	current := head.next
+func (r PortResolver) Resolve(head *common.LinkedCommand) {
+	current := head.Next
 
 	if current == nil {
 		println(invalidMsg)
@@ -79,23 +70,23 @@ func (r PortResolver) resolve(head *LinkedCommand) {
 	rm := "rm"
 	list := "list"
 
-	addOrRemove := current.command == add || current.command == rm
+	addOrRemove := current.Command == add || current.Command == rm
 	// add or remove command takes 1 argument
-	if addOrRemove && len(current.args) != 1 {
+	if addOrRemove && len(current.Args) != 1 {
 		println(invalidMsg)
 		return
 	}
 
 	// add or remove arg should be valid integer
 	if addOrRemove {
-		if _, err := strconv.Atoi(current.args[0]); err != nil {
+		if _, err := strconv.Atoi(current.Args[0]); err != nil {
 			println("Port number should be valid number. Like that: 4040")
 			return
 		}
 	}
 
-	if current.command == add {
-		addingPort := current.args[0]
+	if current.Command == add {
+		addingPort := current.Args[0]
 
 		for _, v := range lib.MainConfig.Ports {
 			// remove ':' from port for cmp
@@ -118,8 +109,8 @@ func (r PortResolver) resolve(head *LinkedCommand) {
 
 		println(addingPort + " is added.")
 		return
-	} else if current.command == rm {
-		removingPort := current.args[0]
+	} else if current.Command == rm {
+		removingPort := current.Args[0]
 
 		for i, v := range lib.MainConfig.Ports {
 			// remove ':' from port for cmp
@@ -142,7 +133,7 @@ func (r PortResolver) resolve(head *LinkedCommand) {
 
 		println("Port not found!")
 		return
-	} else if current.command == list {
+	} else if current.Command == list {
 		for i, v := range lib.MainConfig.Ports {
 			display := strings.Replace(v, ":", "", -1)
 			println("Port" + strconv.Itoa(i) + " " + display)

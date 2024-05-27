@@ -1,6 +1,7 @@
 package main
 
 import (
+	"burakturkerdev/ftgo/src/common"
 	"burakturkerdev/ftgo/src/server/lib"
 	"os"
 	"strings"
@@ -8,10 +9,10 @@ import (
 
 func main() {
 	lib.LoadConfig()
-	loadResolver().resolve(loadHeadCommand())
+	loadResolver().Resolve(loadHeadCommand())
 }
 
-func loadResolver() Resolver {
+func loadResolver() common.Resolver {
 
 	if len(os.Args) <= 1 {
 		println(invalidMsg)
@@ -27,23 +28,23 @@ func loadResolver() Resolver {
 	return resolver
 }
 
-func loadHeadCommand() *LinkedCommand {
-	head := &LinkedCommand{}
+func loadHeadCommand() *common.LinkedCommand {
+	head := &common.LinkedCommand{}
 
-	var current *LinkedCommand = head
+	var current *common.LinkedCommand = head
 
 	for i := 1; i < len(os.Args); i++ {
 		if rune(os.Args[i][0]) == '-' {
 			arg := strings.Replace(os.Args[i], `-`, "", -1)
-			current.args = append(current.args, arg)
+			current.Args = append(current.Args, arg)
 		} else {
-			if current.command == "" {
-				current.command = os.Args[i]
+			if current.Command == "" {
+				current.Command = os.Args[i]
 			} else {
-				current.next = &LinkedCommand{
-					command: os.Args[i],
+				current.Next = &common.LinkedCommand{
+					Command: os.Args[i],
 				}
-				current = current.next
+				current = current.Next
 			}
 		}
 	}

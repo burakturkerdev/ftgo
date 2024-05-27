@@ -16,6 +16,20 @@ const (
 	ReadPermNone     ReadPerm = "NONE"
 )
 
+var WritePermList = []WritePerm{
+	WritePermReadOnly,
+	WritePermPassword,
+	WritePermEveryone,
+	WritePermIp,
+}
+
+var ReadPermList = []ReadPerm{
+	ReadPermNone,
+	ReadPermPassword,
+	ReadPermEveryone,
+	ReadPermIp,
+}
+
 func ValidWritePerm(p WritePerm) bool {
 	if p == WritePermEveryone || p == WritePermIp || p == WritePermPassword || p == WritePermReadOnly {
 		return true

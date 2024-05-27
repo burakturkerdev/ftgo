@@ -41,6 +41,64 @@ ftgosv perm ip rm <ip> # Removes ip from allowed ip list
 ftgosv perm ip list # Lists allowed ip's
 ftgosv perm password set <password> # Sets password for password authentication perm
 ```
+## Protocol Api
+The protocol API facilitates bidirectional communication between client and server, both using the same API. To establish a connection, the `CreateConnection` function requires a `net.Conn` interface. For client-to-server connection, we use `net.Dial`, while for server-side, we use `net.Listen`. Once connected, both can utilize the same methods.
+
+However, there are some fundamental rules:
+
+1. Each message between client and server is preceded by 4 bytes. The first 3 bytes are zeroes, and the 4th byte represents the message itself. You can find message definitions in `common/messages.go`. These messages are integers ranging from 0 to 127.
+   
+2. It's mandatory to add a message if the protocol function doesn't handle it for us.
+
+3. After establishing a connection, we use the `Read` method to wait for data. Following this, we must utilize either `GetMessage` or `IgnoreMessage` method to extract the message from the buffer. Then, we can retrieve the desired data using methods like `GetString`, `GetJson`, etc.
+
+4. For sending data, we have two types of methods for each data type (For example: JSON or raw string):
+   - One doesn't require a message as a parameter and sends the data along with a blank message.
+   - The other type wants a message parameter in the function body.
+
+By adhering to these guidelines, we ensure smooth communication between the client and server using the protocol.
+
+```go
+// Creating connection object for using protocol
+conn := common.CreateConnection(n)
+
+// We are sending "LIST DIRECTORIES/FILES inside /hello" message to server
+conn.SendMessageWithData(common.CListDirs, "/hello")
+
+// Creating a message for holding the response
+var m common.Message
+
+// Firstly, we are reading the response from the server. After that, we are extracting the message to our message holder.
+conn.Read().GetMessage(&m)
+
+// Creating a file info slice
+var infos []common.FileInfo
+
+if m == common.Blank {
+    // We don't need to authenticate because the message is blank, so let's directly extract JSON.
+    conn.GetJson(&infos)
+
+    // We can use our file info JSON.
+    // ...
+} else if m == common.SAuthenticate {
+    // Server wants authentication so we are sending our password
+    conn.SendString("testpassword") // This method adds a blank message for us; we don't need to pass any message.
+
+    // Reading the response from the server
+    conn.Read().GetMessage(&m)
+
+    if m == common.Blank {
+        // Message is blank; we successfully authenticated, let's get our file infos.
+        conn.GetJson(&infos)
+
+        // We can use our file info JSON.
+        // ...
+    } else { // We can look for other message cases as well. But we are skipping in tutorial
+        // Message is not blank; we couldn't authenticate.
+        // ...
+    }
+}
+```
 
 ## Disclaimer
 FTGO is an open-source project designed for fast and secure file transfer. It utilizes a custom security layer with TCP rather than TLS for encryption, providing end-to-end encryption for file transfers. However, it's important to note that while FTGO strives to ensure security, as an open-source project, there's no absolute guarantee of security. While FTGO endeavors to provide a secure file transfer solution, users should exercise caution when transferring sensitive or important files. If security is a primary concern, it's advisable to explore alternative solutions or consult with security experts.

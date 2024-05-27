@@ -29,11 +29,11 @@ func (r ServeResolver) Resolve(head *common.LinkedCommand) {
 	o, err := lib.GetDaemonExecCommand().CombinedOutput()
 
 	if err != nil {
-		fmt.Println("Error => Daemon can't be started -> " + err.Error())
+		println("Error => Daemon can't be started -> " + err.Error())
 		return
 	}
 
-	fmt.Println("OK => Server started " + string(o))
+	println("OK => Server started " + string(o))
 }
 
 // Status
@@ -55,7 +55,7 @@ func (r StatusResolver) Resolve(head *common.LinkedCommand) {
 	build := "FtGo - Server Status \n" + portStatus + "\n\n" + "Read Permission: " +
 		string(lib.MainConfig.ReadPerm) + "\n" + "Write Permission: " + string(lib.MainConfig.WritePerm)
 
-	fmt.Println(build)
+	println(build)
 }
 
 // Status
@@ -66,7 +66,7 @@ func (r PortResolver) Resolve(head *common.LinkedCommand) {
 	current := head.Next
 
 	if current == nil {
-		fmt.Println(invalidMsg)
+		println(invalidMsg)
 		return
 	}
 	// port command have 3 leafs : add /  rm / list
@@ -75,21 +75,21 @@ func (r PortResolver) Resolve(head *common.LinkedCommand) {
 	list := "list"
 
 	if current.Command != add && current.Command != rm && current.Command != list {
-		fmt.Println(invalidMsg)
+		println(invalidMsg)
 		return
 	}
 
 	addOrRemove := current.Command == add || current.Command == rm
 	// add or remove command takes 1 argument
 	if addOrRemove && len(current.Args) != 1 {
-		fmt.Println(invalidMsg)
+		println(invalidMsg)
 		return
 	}
 
 	// add or remove arg should be valid integer
 	if addOrRemove {
 		if _, err := strconv.Atoi(current.Args[0]); err != nil {
-			fmt.Println("Port number should be valid number. Like that: 4040")
+			println("Port number should be valid number. Like that: 4040")
 			return
 		}
 	}
@@ -102,7 +102,7 @@ func (r PortResolver) Resolve(head *common.LinkedCommand) {
 			existPort := strings.Replace(v, ":", "", -1)
 
 			if addingPort == existPort {
-				fmt.Println("Port already exist.")
+				println("Port already exist.")
 				return
 			}
 		}
@@ -112,11 +112,11 @@ func (r PortResolver) Resolve(head *common.LinkedCommand) {
 		err := lib.MainConfig.Save()
 
 		if err != nil {
-			fmt.Println("Error => Can't save config file -> " + err.Error())
+			println("Error => Can't save config file -> " + err.Error())
 			return
 		}
 
-		fmt.Println(addingPort + " is added.")
+		println(addingPort + " is added.")
 		return
 	} else if current.Command == rm {
 		removingPort := current.Args[0]
@@ -132,18 +132,18 @@ func (r PortResolver) Resolve(head *common.LinkedCommand) {
 				err := lib.MainConfig.Save()
 
 				if err != nil {
-					fmt.Println("Error => Can't save config file -> " + err.Error())
+					println("Error => Can't save config file -> " + err.Error())
 					return
 				}
-				fmt.Println(removingPort + " is removed.")
+				println(removingPort + " is removed.")
 				return
 			}
 		}
-		fmt.Println("Port not found!")
+		println("Port not found!")
 	} else if current.Command == list {
 		for i, v := range lib.MainConfig.Ports {
 			display := strings.Replace(v, ":", "", -1)
-			fmt.Println("Port" + strconv.Itoa(i) + " " + display)
+			println("Port" + strconv.Itoa(i) + " " + display)
 		}
 	}
 }
@@ -157,7 +157,7 @@ func (r DirResolver) Resolve(head *common.LinkedCommand) {
 	current := head.Next
 
 	if current == nil {
-		fmt.Println(invalidMsg)
+		println(invalidMsg)
 		return
 	}
 
@@ -166,12 +166,12 @@ func (r DirResolver) Resolve(head *common.LinkedCommand) {
 	set := "set"
 
 	if current.Command != get && current.Command != set {
-		fmt.Println(invalidMsg)
+		println(invalidMsg)
 		return
 	}
 
 	if current.Command == set && len(current.Args) == 0 {
-		fmt.Println("Please give argument for directory. <directory-path>")
+		println("Please give argument for directory. <directory-path>")
 		return
 	}
 
@@ -181,12 +181,12 @@ func (r DirResolver) Resolve(head *common.LinkedCommand) {
 		stat, err := os.Stat(path)
 
 		if err != nil {
-			fmt.Println("Path is invalid.")
+			println("Path is invalid.")
 			return
 		}
 
 		if !stat.IsDir() {
-			fmt.Println("Path should be directory.")
+			println("Path should be directory.")
 		}
 
 		lib.MainConfig.Directory = path
@@ -194,14 +194,14 @@ func (r DirResolver) Resolve(head *common.LinkedCommand) {
 		err = lib.MainConfig.Save()
 
 		if err != nil {
-			fmt.Println("Error => " + err.Error())
+			println("Error => " + err.Error())
 			return
 		}
 
-		fmt.Println("OK -> Directory set to: " + path)
+		println("OK -> Directory set to: " + path)
 
 	} else if current.Command == get {
-		fmt.Println("Current directory -> " + lib.MainConfig.Directory)
+		println("Current directory -> " + lib.MainConfig.Directory)
 	}
 }
 
@@ -212,7 +212,7 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 	current := head.Next
 
 	if current == nil {
-		fmt.Println(invalidMsg)
+		println(invalidMsg)
 		return
 	}
 
@@ -224,7 +224,7 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 	password := "password"
 
 	if current.Command != write && current.Command != read && current.Command != list && current.Command != ip && current.Command != password {
-		fmt.Println(invalidMsg)
+		println(invalidMsg)
 		return
 	}
 
@@ -232,7 +232,7 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 		current = current.Next
 
 		if current == nil {
-			fmt.Println(invalidMsg)
+			println(invalidMsg)
 			return
 		}
 
@@ -241,14 +241,14 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 		get := "get"
 
 		if current.Command != set && current.Command != get {
-			fmt.Println(invalidMsg)
+			println(invalidMsg)
 			return
 		}
 
 		if current.Command == set {
 			// need 1 arg
 			if len(current.Args) == 0 {
-				fmt.Println("Specify perm for set.")
+				println("Specify perm for set.")
 				return
 			}
 
@@ -259,23 +259,23 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 				err := lib.MainConfig.Save()
 
 				if err != nil {
-					fmt.Println("Error => " + err.Error())
+					println("Error => " + err.Error())
 					return
 				}
 
-				fmt.Println("Permission changed.")
+				println("Permission changed.")
 
 			} else {
-				fmt.Println("Perm is not exist.")
+				println("Perm is not exist.")
 			}
 		} else if current.Command == get {
-			fmt.Println(lib.MainConfig.WritePerm)
+			println(lib.MainConfig.WritePerm)
 		}
 	} else if current.Command == read {
 		current = current.Next
 
 		if current == nil {
-			fmt.Println(invalidMsg)
+			println(invalidMsg)
 			return
 		}
 
@@ -284,14 +284,14 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 		get := "get"
 
 		if current.Command != set && current.Command != get {
-			fmt.Println(invalidMsg)
+			println(invalidMsg)
 			return
 		}
 
 		if current.Command == set {
 			// need 1 arg
 			if len(current.Args) == 0 {
-				fmt.Println("Specify perm for set")
+				println("Specify perm for set")
 				return
 			}
 
@@ -302,15 +302,15 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 				err := lib.MainConfig.Save()
 
 				if err != nil {
-					fmt.Println("Error => " + err.Error())
+					println("Error => " + err.Error())
 					return
 				}
-				fmt.Println("Permission changed.")
+				println("Permission changed.")
 			} else {
-				fmt.Println("Perm is not exist.")
+				println("Perm is not exist.")
 			}
 		} else if current.Command == get {
-			fmt.Println(lib.MainConfig.ReadPerm)
+			println(lib.MainConfig.ReadPerm)
 		}
 	} else if current.Command == list {
 		message := "Write Perms:\n"
@@ -331,12 +331,12 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 			message = message + string(v)
 		}
 
-		fmt.Println(message)
+		println(message)
 	} else if current.Command == ip {
 		current = current.Next
 
 		if current == nil {
-			fmt.Println(invalidMsg)
+			println(invalidMsg)
 			return
 		}
 
@@ -346,13 +346,13 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 		list := list
 
 		if current.Command != add && current.Command != rm && current.Command != list {
-			fmt.Println(invalidMsg)
+			println(invalidMsg)
 			return
 		}
 
 		// add, rm commands take 1 argument.
 		if len(current.Args) == 0 && (current.Command == add || current.Command == rm) {
-			fmt.Println("Give IP as arg! Like that => 1.1.1.1")
+			println("Give IP as arg! Like that => 1.1.1.1")
 			return
 		}
 
@@ -369,18 +369,18 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 
 			for _, v := range lib.MainConfig.AllowedIps {
 				if ip == v {
-					fmt.Println("IP already in allowed IP's.")
+					println("IP already in allowed IP's.")
 					return
 				}
 			}
 			lib.MainConfig.AllowedIps = append(lib.MainConfig.AllowedIps, ip)
 			err := lib.MainConfig.Save()
 			if err != nil {
-				fmt.Println("Error => " + err.Error())
+				println("Error => " + err.Error())
 				return
 			}
 
-			fmt.Println("OK => IP address added to allowed IP's.")
+			println("OK => IP address added to allowed IP's.")
 
 		} else if current.Command == rm {
 			ip := current.Args[0]
@@ -393,14 +393,14 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 					lib.MainConfig.AllowedIps = lib.MainConfig.AllowedIps[:len(lib.MainConfig.AllowedIps)-1]
 					err := lib.MainConfig.Save()
 					if err != nil {
-						fmt.Println("Error => " + err.Error())
+						println("Error => " + err.Error())
 						return
 					}
-					fmt.Println("OK => IP removed from allowed IP's")
+					println("OK => IP removed from allowed IP's")
 					return
 				}
 			}
-			fmt.Println("IP address not exist in allowed IP's.")
+			println("IP address not exist in allowed IP's.")
 		} else if current.Command == list {
 			message := "Allowed IP addresses:\n"
 
@@ -410,7 +410,7 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 				}
 				message = message + string(v)
 			}
-			fmt.Println(message)
+			println(message)
 		}
 	} else if current.Command == password {
 		current = current.Next
@@ -419,21 +419,21 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 		set := "set"
 
 		if current.Command != set {
-			fmt.Println(invalidMsg)
+			println(invalidMsg)
 			return
 		}
 
 		setNewPassword := func() {
-			fmt.Println("Set password: ")
+			println("Set password: ")
 
 			password := lib.ReadPassword()
 
-			fmt.Println("Again: ")
+			println("Again: ")
 
 			passwordC := lib.ReadPassword()
 
 			if string(password) != string(passwordC) {
-				fmt.Println("Passwords doesn't match!")
+				println("Passwords doesn't match!")
 				return
 			}
 
@@ -444,22 +444,22 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 			err := lib.MainConfig.Save()
 
 			if err != nil {
-				fmt.Println("Error => " + err.Error())
+				println("Error => " + err.Error())
 				return
 			}
 
-			fmt.Println("OK => Password changed.")
+			println("OK => Password changed.")
 		}
 
 		if lib.MainConfig.Password == "" {
 			setNewPassword()
 		} else {
-			fmt.Println("Enter old password: ")
+			println("Enter old password: ")
 
 			password := lib.ReadPassword()
 
 			if lib.ValidateHash([]byte(lib.MainConfig.Password), password) {
-				fmt.Println("Old password is not correct.")
+				println("Old password is not correct.")
 				return
 			}
 

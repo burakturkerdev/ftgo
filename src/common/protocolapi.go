@@ -2,7 +2,6 @@ package common
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
 )
@@ -94,7 +93,7 @@ func (c *Connection) GetJson(t any) {
 func (c *Connection) SendJson(t any) {
 	j, e := json.Marshal(t)
 	if e != nil {
-		fmt.Println("Log => Json marshal error -> " + e.Error())
+		println("Log => Json marshal error -> " + e.Error())
 	}
 	bytes := []byte{}
 

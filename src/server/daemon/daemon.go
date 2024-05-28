@@ -5,6 +5,7 @@ import (
 	"burakturkerdev/ftgo/src/common"
 	"burakturkerdev/ftgo/src/server/lib"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -172,7 +173,7 @@ func handleConnection(conn net.Conn) {
 
 			readed, err := reader.Read(buffer)
 
-			if err != nil && err.Error() != "EOF" {
+			if err != nil && err != io.EOF {
 				c.SendMessageWithData(common.Fail, err.Error())
 				return
 			}

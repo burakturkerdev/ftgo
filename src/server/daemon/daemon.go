@@ -8,6 +8,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -100,7 +102,9 @@ func handleConnection(conn net.Conn) {
 	// Set the working path if exists(if client didn't send path string will be "").
 	var path string
 	c.GetString(&path)
-	path = lib.MainConfig.Directory + path
+	if !strings.HasPrefix(path, "/") { // any path starting with / would be an absolute path from root, so we just keep the path as it is
+		path = filepath.Join(lib.MainConfig.Directory, path)
+	}
 
 	// List dirs operation
 	if message == common.CListDirs {

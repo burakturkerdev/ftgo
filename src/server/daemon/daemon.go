@@ -5,9 +5,12 @@ import (
 	"burakturkerdev/ftgo/src/common"
 	"burakturkerdev/ftgo/src/server/lib"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -100,21 +103,23 @@ func handleConnection(conn net.Conn) {
 	// Set the working path if exists(if client didn't send path string will be "").
 	var path string
 	c.GetString(&path)
-	path = lib.MainConfig.Directory + path
+	if !strings.HasPrefix(path, "/") { // any path starting with / would be an absolute path from root, so we just keep the path as it is
+		path = filepath.Join(lib.MainConfig.Directory, path)
+	}
 
 	// List dirs operation
-	if message == common.CListDirs {
-
+	switch message {
+	case common.CListDirs:
 		ensureReadAuthentication()
 
 		files, err := os.ReadDir(path)
 
 		if err != nil {
-			fmt.Println("Log => Client is trying to invalid path -> " + err.Error())
+			fmt.Println("Log => Client is trying to read invalid path -> " + err.Error())
 		}
 
 		fileinfos := make([]common.FileInfo, len(files))
-		//TO-DO file size not working.
+		// FIXME: file size not working.
 		for i, f := range files {
 			if !f.IsDir() {
 				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 0}
@@ -128,7 +133,7 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 		c.SendJson(fileinfos)
-	} else if message == common.CDownload {
+	case common.CDownload:
 		ensureReadAuthentication()
 
 		stat, err := os.Stat(path)
@@ -168,7 +173,7 @@ func handleConnection(conn net.Conn) {
 
 			readed, err := reader.Read(buffer)
 
-			if err != nil && err.Error() != "EOF" {
+			if err != nil && err != io.EOF {
 				c.SendMessageWithData(common.Fail, err.Error())
 				return
 			}
@@ -185,7 +190,7 @@ func handleConnection(conn net.Conn) {
 			c.SendData(buffer)
 			readLoop++
 		}
-	} else if message == common.CUpload {
+	case common.CUpload:
 		// Start permission checks
 		if lib.MainConfig.WritePerm == lib.WritePermPassword {
 
@@ -262,8 +267,11 @@ func handleConnection(conn net.Conn) {
 			_, err = file.Write(buffer)
 
 			if err != nil {
-				c.SendMessageWithData(common.Fail, "CRITICIAL "+err.Error())
+				c.SendMessageWithData(common.Fail, "CRITICAL "+err.Error())
 			}
 		}
+	default:
+		c.SendMessage(common.UnknownMessage)
+		fmt.Printf("Log => Client sent unknown message -> %d\n", message)
 	}
 }

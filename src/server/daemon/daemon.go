@@ -266,7 +266,7 @@ func handleConnection(conn net.Conn) {
 			_, err = file.Write(buffer)
 
 			if err != nil {
-				c.SendMessageWithData(common.Fail, "CRITICIAL "+err.Error())
+				c.SendMessageWithData(common.Fail, "CRITICAL "+err.Error())
 			}
 		}
 	default:

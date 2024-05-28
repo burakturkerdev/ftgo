@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"burakturkerdev/ftgo/src/common"
 	"burakturkerdev/ftgo/src/server/lib"
 	"fmt"
@@ -57,14 +58,8 @@ func handleConnection(conn net.Conn) {
 
 	c := common.CreateConnection(conn)
 
-	var message common.Message
-	c.Read().GetMessage(&message)
-	// List dirs operation
-	if message == common.CListDirs {
-
-		var path string
-		c.GetString(&path)
-
+	// Gets authentication if needed
+	ensureReadAuthentication := func() {
 		// Start permission checks
 		if lib.MainConfig.ReadPerm == lib.ReadPermPassword {
 
@@ -92,8 +87,28 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 		// End permission checks
+	}
 
-		files, err := os.ReadDir(lib.MainConfig.Directory + path)
+	// todo
+	// Gets authentication if needed
+	//ensureWriteAuthentication := func() {
+	// Start permission checks
+
+	// End permission checks
+	//}
+
+	var message common.Message
+	c.Read().GetMessage(&message)
+	// List dirs operation
+	if message == common.CListDirs {
+
+		var path string
+		c.GetString(&path)
+		path = lib.MainConfig.Directory + path
+
+		ensureReadAuthentication()
+
+		files, err := os.ReadDir(path)
 
 		if err != nil {
 			fmt.Println("Log => Client is trying to invalid path -> " + err.Error())
@@ -105,7 +120,7 @@ func handleConnection(conn net.Conn) {
 			if !f.IsDir() {
 				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 0}
 			} else {
-				stat, err := os.Stat(lib.MainConfig.Directory + string(path) + f.Name())
+				stat, err := os.Stat(path + f.Name())
 
 				if err != nil {
 					fmt.Println("Log => Can't get size of file.")
@@ -114,5 +129,66 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 		c.SendJson(fileinfos)
+	} else if message == common.CDownload {
+		var path string
+		c.GetString(&path)
+
+		path = lib.MainConfig.Directory + path
+		ensureReadAuthentication()
+
+		stat, err := os.Stat(path)
+
+		if err != nil {
+			c.SendMessageWithData(common.Fail, err.Error())
+			return
+		}
+
+		if !stat.IsDir() {
+			c.SendMessageWithData(common.Fail, "This is not a directory")
+			return
+		}
+
+		file, err := os.Open(path)
+
+		if err != nil {
+			c.SendMessageWithData(common.Fail, err.Error())
+			return
+		}
+
+		defer file.Close()
+
+		buffer := make([]byte, common.ExchangeBufferSize)
+
+		reader := bufio.NewReader(file)
+
+		readLoop := 0
+
+		for {
+			_, err := reader.Discard(readLoop * common.ExchangeBufferSize)
+
+			if err != nil {
+				c.SendMessageWithData(common.Fail, err.Error())
+				return
+			}
+
+			readed, err := reader.Read(buffer)
+
+			if err != nil && err.Error() != "EOF" {
+				c.SendMessageWithData(common.Fail, err.Error())
+				return
+			}
+
+			if readed < common.ExchangeBufferSize {
+				buffer = buffer[:readed]
+				if readed != 0 {
+					c.SendData(buffer)
+				}
+				c.SendMessage(common.Completed)
+				return
+			}
+
+			c.SendData(buffer)
+			readLoop++
+		}
 	}
 }

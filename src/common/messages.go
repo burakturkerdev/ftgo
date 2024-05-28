@@ -16,6 +16,12 @@ const (
 	Success       Message = 14
 	Fail          Message = 15
 	Blank         Message = 16
+	Completed     Message = 17
+)
+
+const (
+	// 1 GB (DEFAULT)
+	ExchangeBufferSize = 1024 * 1024 * 1024
 )
 
 func messageToBytes(m Message) []byte {

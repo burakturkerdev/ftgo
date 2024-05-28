@@ -39,8 +39,16 @@ func (c *Connection) Read() *Connection {
 	return c
 }
 
-func (c *Connection) ReadFile(buffer []byte) {
+func (c *Connection) SendData(buffer []byte) {
+	bytes := messageToBytes(Blank)
+	bytes = append(bytes, buffer...)
+	c.conn.Write(bytes)
+}
 
+func (c *Connection) ReadData() {
+	if !c.messageReaded {
+		log.Fatal("MESSAGE NOT EXTRACTED. FIRSTLY EXTRACT MESSAGE WITH GetMessage() OR IgnoreMessage()")
+	}
 }
 
 func (c *Connection) GetMessage(m *Message) *Connection {

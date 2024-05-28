@@ -53,7 +53,7 @@ However, there are some fundamental rules:
 3. After establishing a connection, we use the `Read` method to wait for data. Following this, we must utilize either `GetMessage` or `IgnoreMessage` method to extract the message from the buffer. Then, we can retrieve the desired data using methods like `GetString`, `GetJson`, etc.
 
 4. For sending data, we have two types of methods for each data type (For example: JSON or raw string):
-   - One doesn't require a message as a parameter and sends the data along with a blank message.
+   - One doesn't require a message as a parameter and sends the data along with a success message.
    - The other type wants a message parameter in the function body.
 
 By adhering to these guidelines, we ensure smooth communication between the client and server using the protocol.
@@ -74,27 +74,27 @@ conn.Read().GetMessage(&m)
 // Creating a file info slice
 var infos []common.FileInfo
 
-if m == common.Blank {
-    // We don't need to authenticate because the message is blank, so let's directly extract JSON.
+if m == common.Success {
+    // We don't need to authenticate because the message is success, so let's directly extract JSON.
     conn.GetJson(&infos)
 
     // We can use our file info JSON.
     // ...
 } else if m == common.SAuthenticate {
     // Server wants authentication so we are sending our password
-    conn.SendString("testpassword") // This method adds a blank message for us; we don't need to pass any message.
+    conn.SendString("testpassword") // This method adds a success message for us; we don't need to pass any message.
 
     // Reading the response from the server
     conn.Read().GetMessage(&m)
 
-    if m == common.Blank {
-        // Message is blank; we successfully authenticated, let's get our file infos.
+    if m == common.Success {
+        // Message is success; we successfully authenticated, let's get our file infos.
         conn.GetJson(&infos)
 
         // We can use our file info JSON.
         // ...
     } else { // We can look for other message cases as well. But we are skipping in tutorial
-        // Message is not blank; we couldn't authenticate.
+        // Message is not success; we couldn't authenticate.
         // ...
     }
 }

@@ -39,8 +39,9 @@ func (c *Connection) Read() *Connection {
 	return c
 }
 
+// Sends data with success message.
 func (c *Connection) SendData(buffer []byte) {
-	bytes := messageToBytes(Blank)
+	bytes := messageToBytes(Success)
 	bytes = append(bytes, buffer...)
 	c.conn.Write(bytes)
 }
@@ -77,9 +78,9 @@ func (c *Connection) GetString(s *string) {
 	*s = string(c.content[c.readed:])
 }
 
+// Sends string with success message.
 func (c *Connection) SendString(s string) {
-	// WE HAVE TO ADD BLANK MESSAGE, BECAUSE IN PROTOCOL THERE MUST BE ALWAYS LEADING 4 BYTE MESSAGE
-	bytes := messageToBytes(Blank)
+	bytes := messageToBytes(Success)
 	bytes = append(bytes, []byte(s)...)
 	c.conn.Write(bytes)
 }
@@ -99,6 +100,7 @@ func (c *Connection) GetJson(t any) {
 	json.Unmarshal(c.content[c.readed:], t)
 }
 
+// Sends json with success message.
 func (c *Connection) SendJson(t any) {
 	j, e := json.Marshal(t)
 	if e != nil {
@@ -106,8 +108,7 @@ func (c *Connection) SendJson(t any) {
 	}
 	bytes := []byte{}
 
-	// WE HAVE TO ADD BLANK MESSAGE, BECAUSE IN PROTOCOL THERE MUST BE ALWAYS LEADING 4 BYTE MESSAGE
-	bytes = append(bytes, messageToBytes(Blank)...)
+	bytes = append(bytes, messageToBytes(Success)...)
 
 	bytes = append(bytes, j...)
 

@@ -8,15 +8,18 @@ type Message uint32
 
 // They should be maximum 1 byte(0-127)
 const (
+	// Client side messages
 	CListDirs Message = 10
 	CDownload Message = 11
 
+	// Server side messages
 	SUnAuthorized Message = 12
 	SAuthenticate Message = 13
-	Success       Message = 14
-	Fail          Message = 15
-	Blank         Message = 16
-	Completed     Message = 17
+
+	// General messages
+	Success   Message = 14
+	Fail      Message = 15
+	Completed Message = 16
 )
 
 const (

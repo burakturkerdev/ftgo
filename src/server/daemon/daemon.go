@@ -269,5 +269,8 @@ func handleConnection(conn net.Conn) {
 				c.SendMessageWithData(common.Fail, "CRITICIAL "+err.Error())
 			}
 		}
+	default:
+		c.SendMessage(common.UnknownMessage)
+		fmt.Printf("Log => Client sent unknown message -> %d\n", message)
 	}
 }

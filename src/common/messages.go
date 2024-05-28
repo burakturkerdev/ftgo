@@ -18,9 +18,10 @@ const (
 	SAuthenticate Message = 14
 
 	// General messages
-	Success   Message = 15
-	Fail      Message = 16
-	Completed Message = 17
+	Success        Message = 15
+	Fail           Message = 16
+	Completed      Message = 17
+	UnknownMessage Message = 18
 )
 
 const (

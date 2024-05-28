@@ -99,9 +99,9 @@ func handleConnection(conn net.Conn) {
 
 	var message common.Message
 	c.Read().GetMessage(&message)
+
 	// List dirs operation
 	if message == common.CListDirs {
-
 		var path string
 		c.GetString(&path)
 		path = lib.MainConfig.Directory + path
@@ -143,8 +143,8 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		if !stat.IsDir() {
-			c.SendMessageWithData(common.Fail, "This is not a directory")
+		if stat.IsDir() {
+			c.SendMessageWithData(common.Fail, "This is a directory.")
 			return
 		}
 

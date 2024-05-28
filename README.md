@@ -75,7 +75,7 @@ conn.Read().GetMessage(&m)
 var infos []common.FileInfo
 
 if m == common.Success {
-    // We don't need to authenticate because the message is success, so let's directly extract JSON.
+    // We don't need to authenticate because message is success, so let's directly extract JSON.
     conn.GetJson(&infos)
 
     // We can use our file info JSON.

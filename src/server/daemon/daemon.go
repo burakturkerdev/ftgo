@@ -107,8 +107,8 @@ func handleConnection(conn net.Conn) {
 	}
 
 	// List dirs operation
-	if message == common.CListDirs {
-
+	switch message {
+	case common.CListDirs:
 		ensureReadAuthentication()
 
 		files, err := os.ReadDir(path)
@@ -132,7 +132,7 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 		c.SendJson(fileinfos)
-	} else if message == common.CDownload {
+	case common.CDownload:
 		ensureReadAuthentication()
 
 		stat, err := os.Stat(path)
@@ -189,7 +189,7 @@ func handleConnection(conn net.Conn) {
 			c.SendData(buffer)
 			readLoop++
 		}
-	} else if message == common.CUpload {
+	case common.CUpload:
 		// Start permission checks
 		if lib.MainConfig.WritePerm == lib.WritePermPassword {
 

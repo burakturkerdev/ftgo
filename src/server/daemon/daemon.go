@@ -114,7 +114,7 @@ func handleConnection(conn net.Conn) {
 		files, err := os.ReadDir(path)
 
 		if err != nil {
-			fmt.Println("Log => Client is trying to invalid path -> " + err.Error())
+			fmt.Println("Log => Client is trying to read invalid path -> " + err.Error())
 		}
 
 		fileinfos := make([]common.FileInfo, len(files))

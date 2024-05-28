@@ -46,10 +46,12 @@ func (c *Connection) SendData(buffer []byte) {
 	c.conn.Write(bytes)
 }
 
-func (c *Connection) ReadData() {
+func (c *Connection) GetData(buffer *[]byte) {
 	if !c.messageReaded {
 		log.Fatal("MESSAGE NOT EXTRACTED. FIRSTLY EXTRACT MESSAGE WITH GetMessage() OR IgnoreMessage()")
 	}
+
+	*buffer = c.content
 }
 
 func (c *Connection) GetMessage(m *Message) *Connection {

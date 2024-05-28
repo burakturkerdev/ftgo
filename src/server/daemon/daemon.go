@@ -86,25 +86,24 @@ func handleConnection(conn net.Conn) {
 				return
 			}
 		}
+
+		if lib.MainConfig.ReadPerm == lib.ReadPermNone {
+			c.SendMessage(common.SUnAuthorized)
+			return
+		}
 		// End permission checks
 	}
-
-	// todo
-	// Gets authentication if needed
-	//ensureWriteAuthentication := func() {
-	// Start permission checks
-
-	// End permission checks
-	//}
 
 	var message common.Message
 	c.Read().GetMessage(&message)
 
+	// Set the working path if exists(if client didn't send path string will be "").
+	var path string
+	c.GetString(&path)
+	path = lib.MainConfig.Directory + path
+
 	// List dirs operation
 	if message == common.CListDirs {
-		var path string
-		c.GetString(&path)
-		path = lib.MainConfig.Directory + path
 
 		ensureReadAuthentication()
 
@@ -130,10 +129,6 @@ func handleConnection(conn net.Conn) {
 		}
 		c.SendJson(fileinfos)
 	} else if message == common.CDownload {
-		var path string
-		c.GetString(&path)
-
-		path = lib.MainConfig.Directory + path
 		ensureReadAuthentication()
 
 		stat, err := os.Stat(path)
@@ -189,6 +184,86 @@ func handleConnection(conn net.Conn) {
 
 			c.SendData(buffer)
 			readLoop++
+		}
+	} else if message == common.CUpload {
+		// Start permission checks
+		if lib.MainConfig.WritePerm == lib.WritePermPassword {
+
+			c.SendMessage(common.SAuthenticate)
+
+			var password string
+			c.Read().IgnoreMessage().GetString(&password)
+
+			if !lib.ValidateHash([]byte(lib.MainConfig.Password), []byte(password)) {
+				c.SendMessage(common.SUnAuthorized)
+				return
+			}
+		}
+		if lib.MainConfig.WritePerm == lib.WritePermIp {
+			var allowed bool
+			for _, v := range lib.MainConfig.AllowedIps {
+				if v == conn.RemoteAddr().String() {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				c.SendMessage(common.SUnAuthorized)
+				return
+			}
+		}
+
+		if lib.MainConfig.WritePerm == lib.WritePermPassword {
+			c.SendMessage(common.SUnAuthorized)
+			return
+		}
+		// End permission checks
+
+		// Creating dirs (it will not do anything if dirs already exist)
+		for i := len(path); i <= 0; i-- {
+			if path[i] == '/' {
+				os.MkdirAll(path[:i], 0)
+				break
+			}
+		}
+
+		file, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0)
+
+		if err != nil {
+			c.SendMessageWithData(common.Fail, err.Error())
+		}
+
+		//Starting to read buffer
+
+		buffer := make([]byte, common.ExchangeBufferSize)
+
+		var m common.Message
+
+		readStarted := false
+
+		for {
+			c.Read().GetMessage(&m)
+
+			if m != common.Success && m != common.Completed {
+				c.SendMessageWithData(common.Fail, "message is not valid")
+			}
+
+			if m == common.Completed {
+				return
+			}
+
+			if !readStarted {
+				file.Truncate(0)
+				readStarted = true
+			}
+
+			c.GetData(&buffer)
+
+			_, err = file.Write(buffer)
+
+			if err != nil {
+				c.SendMessageWithData(common.Fail, "CRITICIAL "+err.Error())
+			}
 		}
 	}
 }

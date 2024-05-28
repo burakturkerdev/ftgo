@@ -11,15 +11,16 @@ const (
 	// Client side messages
 	CListDirs Message = 10
 	CDownload Message = 11
+	CUpload   Message = 12
 
 	// Server side messages
-	SUnAuthorized Message = 12
-	SAuthenticate Message = 13
+	SUnAuthorized Message = 13
+	SAuthenticate Message = 14
 
 	// General messages
-	Success   Message = 14
-	Fail      Message = 15
-	Completed Message = 16
+	Success   Message = 15
+	Fail      Message = 16
+	Completed Message = 17
 )
 
 const (

@@ -9,37 +9,37 @@ FtGo is server and client application designed for secure file transfer. It util
 
 ## Client Commands
 ```bash
-ftgo server add <server-name> <server-address> # Adds server to list for using again
+ftgo server add -SERVERNAME -SERVERADDRESS # Adds server to list for using again
 ftgo server list # Lists all servers saved to client
-ftgo server rm <server-name> # Removes server from client
-ftgo package new <package-name> # Creates new package
-ftgo package add <package-name> <file/directory> # Adds file or directory to package
-ftgo package push <package-name> <server-name>/<server-address> # Pushs package to server
-ftgo push <file/directory> <server-name>/<server-address> # Pushs file or directory to server
-ftgo server connect <server-name>/<server-address> # Connects to server and lists all files and directories
-ftgo cd <directory> # Cd into directory in server
-ftgo pull <file/directory> <path> # Pulls directory or file from server to path (if path blank it will pull to default dir)
-ftgo dir set <path> # Sets the default directory for pulling
+ftgo server rm -SERVERNAME # Removes server from client
+ftgo package new -PACKAGENAME # Creates new package
+ftgo package add -PACKAGENAME -PATH # Adds file or directory to package
+ftgo package push -PACKAGENAME -SERVERNAME/-SERVERADDRESS # Pushs package to server
+ftgo push -FILE/-DIRECTORY -SERVERNAME/-SERVERADDRESS # Pushs file or directory to server
+ftgo server connect -SERVERNAME/-SERVERADDRESS # Connects to server and lists all files and directories
+ftgo cd -DIRECTORY # Cd into directory in server
+ftgo pull -PATH -PATH # Pulls directory or file from server to path (if second path blank it will pull to default dir)
+ftgo dir set -PATH # Sets the default directory for pulling
 ftgo dir get # Gets the default directory for pulling
 ```
 ## Server Commands
 ```bash
 ftgosv serve # Starts server daemon for serving
 ftgosv status # Lists all server information
-ftgosv port add <port> # Adds port for listening
-ftgosv port rm <port> # Removes port
+ftgosv port add -PORT # Adds port for listening
+ftgosv port rm -PORT # Removes port
 ftgosv port list # Lists all ports
-ftgosv dir set <path> # Sets the serving directory
+ftgosv dir set -PATH # Sets the serving directory
 ftgosv dir get # Gets the serving directory
-ftgosv perm write set <perm> # Sets the perm for write operations
+ftgosv perm write set -PERM # Sets the perm for write operations
 ftgosv perm write get # Gets the perm for write operations
-ftgosv perm read set <perm> # Sets the perm for read operations
+ftgosv perm read set -PERM # Sets the perm for read operations
 ftgosv perm read get # Gets the perm for write operations
-ftgosv perm list <perm> # Lists all usable perms
-ftgosv perm ip add <ip> # Adds ip for ip based perm
-ftgosv perm ip rm <ip> # Removes ip from allowed ip list
+ftgosv perm list -PERM # Lists all usable perms
+ftgosv perm ip add -IP # Adds ip for ip based perm
+ftgosv perm ip rm -IP # Removes ip from allowed ip list
 ftgosv perm ip list # Lists allowed ip's
-ftgosv perm password set <password> # Sets password for password authentication perm
+ftgosv perm password set -PASSWORD # Sets password for password authentication perm
 ```
 ## Protocol Api
 The protocol API facilitates bidirectional communication between client and server, both using the same API. To establish a connection, the `CreateConnection` function requires a `net.Conn` interface. For client-to-server connection, we use `net.Dial`, while for server-side, we use `net.Listen`. Once connected, both can utilize the same methods.

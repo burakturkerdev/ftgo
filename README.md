@@ -14,7 +14,7 @@ FtGo is server and client application designed for secure file transfer. It util
 | `ftgo server list`                        | Lists all servers saved to client                  |
 | `ftgo server rm -SERVERNAME`              | Removes server from client                         |
 | `ftgo package new -PACKAGENAME`           | Creates new package                                |
-| `ftgo package add -PACKAGENAME -PATH`     | Adds file or directory to package                  |
+| `ftgo package add -PACKAGENAME` <br> `-PATH`     | Adds file or directory to package                  |
 | `ftgo package push -PACKAGENAME` <br> `[-SERVERNAME or -SERVERADDRESS]` | Pushes package to server            |
 | `ftgo push -FILE/DIRECTORY` <br> `[-SERVERNAME or -SERVERADDRESS]`      | Pushes file or directory to server                 |
 | `ftgo server connect` <br> `[-SERVERNAME or -SERVERADDRESS]`            | Connects to server and lists all files and directories |

@@ -12,7 +12,6 @@ type Config interface {
 func createNewConfig[T Config](c Config, path string) {
 
 	jsonData, err := json.Marshal(c)
-
 	if err != nil {
 		panic("Error => JSON encoding error.")
 	}

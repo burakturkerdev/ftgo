@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-var invalidMsg string = "Invalid message, type ftgo help if you lost."
+const invalidMsg string = "Invalid message, type ftgo help if you lost."
 
 var resolvers = map[string]common.Resolver{
 	"serve":  &ServeResolver{},

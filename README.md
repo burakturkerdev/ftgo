@@ -10,7 +10,7 @@ FtGo is server and client application designed for secure file transfer. It util
 ## Client Commands
 | Command                                   | Description                                         |
 |-------------------------------------------|-----------------------------------------------------|
-| `ftgo server add -SERVERNAME -SERVERADDRESS` | Adds server to list for using again               |
+| `ftgo server add -SERVERNAME` <br> `-SERVERADDRESS` | Adds server to list for using again               |
 | `ftgo server list`                        | Lists all servers saved to client                  |
 | `ftgo server rm -SERVERNAME`              | Removes server from client                         |
 | `ftgo package new -PACKAGENAME`           | Creates new package                                |

@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 func GenerateHash(i []byte) string {
@@ -23,7 +23,7 @@ func ValidateHash(h []byte, i []byte) bool {
 }
 
 func ReadPassword() []byte {
-	password, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		log.Fatal("Password can't read.")
 	}

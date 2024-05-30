@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"burakturkerdev/ftgo/src/common"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -339,7 +340,7 @@ func (p *PackageResolver) Resolve(head *common.LinkedCommand) {
 }
 
 func pushFileToServer(fp string, c *common.Connection) error {
-	file, err := os.OpenFile(fp, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0)
+	file, err := os.OpenFile(fp, 0, 0)
 
 	if err != nil {
 		return err
@@ -363,15 +364,13 @@ func pushFileToServer(fp string, c *common.Connection) error {
 
 	for {
 		_, err = reader.Discard(send * common.ExchangeBufferSize)
-
-		if err != nil {
+		if err != nil && err != io.EOF {
 			close(ch)
 			return err
 		}
 
 		readed, err := reader.Read(buffer)
-
-		if err != nil {
+		if err != nil && err != io.EOF {
 			close(ch)
 			return err
 		}
@@ -379,7 +378,7 @@ func pushFileToServer(fp string, c *common.Connection) error {
 		if readed == 0 {
 			close(ch)
 			c.SendMessage(common.Completed)
-			break
+			return nil
 		}
 
 		if readed < common.ExchangeBufferSize {
@@ -391,8 +390,6 @@ func pushFileToServer(fp string, c *common.Connection) error {
 		send++
 		ch <- send
 	}
-	close(ch)
-	return nil
 }
 
 // If authentication needed it will get password from user

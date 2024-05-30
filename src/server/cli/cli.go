@@ -426,11 +426,11 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 		setNewPassword := func() {
 			fmt.Println("Set password: ")
 
-			password := lib.ReadPassword()
+			password := common.ReadPassword()
 
 			fmt.Println("Again: ")
 
-			passwordC := lib.ReadPassword()
+			passwordC := common.ReadPassword()
 
 			if string(password) != string(passwordC) {
 				fmt.Println("Passwords doesn't match!")
@@ -456,7 +456,7 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 		} else {
 			fmt.Println("Enter old password: ")
 
-			password := lib.ReadPassword()
+			password := common.ReadPassword()
 
 			if lib.ValidateHash([]byte(lib.MainConfig.Password), password) {
 				fmt.Println("Old password is not correct.")

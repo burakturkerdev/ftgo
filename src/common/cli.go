@@ -1,7 +1,11 @@
 package common
 
 import (
+	"log"
+	"os"
 	"strings"
+
+	"golang.org/x/term"
 )
 
 type LinkedCommand struct {
@@ -37,4 +41,13 @@ func LoadHeadCommand(args []string) *LinkedCommand {
 		}
 	}
 	return head
+}
+
+func ReadPassword() []byte {
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		log.Fatal("Password can't read.")
+	}
+
+	return password
 }

@@ -2,10 +2,8 @@ package lib
 
 import (
 	"log"
-	"os"
 
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/term"
 )
 
 func GenerateHash(i []byte) string {
@@ -20,13 +18,4 @@ func GenerateHash(i []byte) string {
 
 func ValidateHash(h []byte, i []byte) bool {
 	return bcrypt.CompareHashAndPassword(h, i) == nil
-}
-
-func ReadPassword() []byte {
-	password, err := term.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		log.Fatal("Password can't read.")
-	}
-
-	return password
 }

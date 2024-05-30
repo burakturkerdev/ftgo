@@ -75,6 +75,7 @@ func handleConnection(conn net.Conn) {
 				c.SendMessage(common.SUnAuthorized)
 				return
 			}
+			c.SendMessage(common.Success)
 		}
 		if lib.MainConfig.ReadPerm == lib.ReadPermIp {
 			var allowed bool
@@ -203,6 +204,7 @@ func handleConnection(conn net.Conn) {
 				c.SendMessage(common.SUnAuthorized)
 				return
 			}
+			c.SendMessage(common.Success)
 		}
 		if lib.MainConfig.WritePerm == lib.WritePermIp {
 			var allowed bool
@@ -218,7 +220,7 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 
-		if lib.MainConfig.WritePerm == lib.WritePermPassword {
+		if lib.MainConfig.WritePerm == lib.WritePermReadOnly {
 			c.SendMessage(common.SUnAuthorized)
 			return
 		}

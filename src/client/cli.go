@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"burakturkerdev/ftgo/src/common"
 	"fmt"
 	"log"
@@ -268,8 +269,165 @@ func (p *PackageResolver) Resolve(head *common.LinkedCommand) {
 
 		println(msg)
 
-		//  TODO
 	} else if current.Command == push {
+		if len(current.Args) != 2 {
+			fmt.Println(invalidMsg)
+			return
+		}
+
+		pkgname := current.Args[0]
+
+		sv := current.Args[1]
+
+		for _, v := range mainConfig.Packages {
+			if v.Name == pkgname {
+				for _, f := range v.Files {
+
+					var address string
+
+					for n, a := range mainConfig.Servers {
+						if n == sv {
+							address = a
+							break
+						}
+					}
+
+					if address == "" {
+						for i, c := range sv {
+							if c == ':' {
+								parse := net.ParseIP(sv[:i])
+
+								if parse == nil {
+									fmt.Println("This is not a valid ip address and port.")
+									return
+								}
+								address = sv
+							}
+						}
+					}
+
+					if address == "" {
+						fmt.Println("This is not a valid ip address and port.")
+						return
+					}
+
+					dial, err := net.Dial("tcp", address)
+
+					if err != nil {
+						fmt.Println(f + " -> error while trying to push file => " + err.Error())
+						continue
+					}
+
+					defer dial.Close()
+
+					c := common.CreateConnection(dial)
+
+					c.SendMessage(common.CUpload)
+
+					handleAuth(c)
+
+					err = pushFileToServer(f, c)
+
+					if err != nil {
+						fmt.Println(f + " -> error while trying to push file => " + err.Error())
+					}
+				}
+			}
+		}
 
 	}
+}
+
+func pushFileToServer(fp string, c *common.Connection) error {
+	file, err := os.OpenFile(fp, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0)
+
+	if err != nil {
+		return err
+	}
+
+	stat, err := os.Stat(fp)
+
+	if err != nil {
+		return err
+	}
+
+	reader := bufio.NewReader(file)
+
+	buffer := make([]byte, common.ExchangeBufferSize)
+
+	send := 0
+
+	ch := make(chan int)
+
+	go createProgress(fp, int(stat.Size()/common.ExchangeBufferSize), ch)
+
+	for {
+		_, err = reader.Discard(send * common.ExchangeBufferSize)
+
+		if err != nil {
+			close(ch)
+			return err
+		}
+
+		readed, err := reader.Read(buffer)
+
+		if err != nil {
+			close(ch)
+			return err
+		}
+
+		if readed == 0 {
+			close(ch)
+			c.SendMessage(common.Completed)
+			break
+		}
+
+		if readed < common.ExchangeBufferSize {
+			buffer = buffer[:readed]
+		}
+
+		c.SendData(buffer)
+
+		send++
+		ch <- send
+	}
+	close(ch)
+	return nil
+}
+
+// If authentication needed it will get password from user
+func handleAuth(c *common.Connection) {
+
+	var message common.Message
+
+	c.Read().GetMessage(&message)
+
+	if message == common.SAuthenticate {
+		pw := common.ReadPassword()
+
+		c.SendString(string(pw))
+		c.Read().GetMessage(&message)
+
+		if message == common.Success {
+			return
+		} else {
+			log.Fatal("Can't authenticate with this password.")
+		}
+	}
+
+}
+
+func createProgress(name string, total int, completed chan int) {
+	for range completed {
+		msg := name + " -> "
+		for range completed {
+			msg += "="
+		}
+		for range total - <-completed {
+			msg += "-"
+		}
+		fmt.Println("\033[2K")
+		fmt.Println(msg)
+	}
+	fmt.Println()
 }

@@ -119,7 +119,7 @@ func handleConnection(conn net.Conn) {
 		}
 
 		fileinfos := make([]common.FileInfo, len(files))
-		// FIXME: file size not working.
+
 		for i, f := range files {
 			if !f.IsDir() {
 				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 0}

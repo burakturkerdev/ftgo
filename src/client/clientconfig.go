@@ -7,7 +7,7 @@ import (
 
 type ClientConfig struct {
 	Servers  map[string]string
-	Packages map[string][]string
+	Packages []*Package
 	Downdir  string
 }
 
@@ -22,7 +22,7 @@ func setFieldsDefault(c *ClientConfig) error {
 	}
 
 	c.Downdir = home
-	c.Packages = make(map[string][]string)
+	c.Packages = []*Package{}
 	c.Servers = make(map[string]string)
 	return nil
 }

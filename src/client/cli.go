@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strconv"
+	"time"
 )
 
 var resolvers = map[string]common.Resolver{
-	"server": &ServerResolver{},
+	"server":  &ServerResolver{},
+	"package": &PackageResolver{},
 }
 
 type ServerResolver struct{}
@@ -33,7 +36,6 @@ func (r *ServerResolver) Resolve(head *common.LinkedCommand) {
 	}
 
 	if current.Command == add {
-
 		if len(current.Args) != 2 {
 			fmt.Println(invalidMsg)
 			return
@@ -113,5 +115,136 @@ func (r *ServerResolver) Resolve(head *common.LinkedCommand) {
 		}
 
 		fmt.Println(msg)
+	}
+}
+
+// Package resolver
+type PackageResolver struct{}
+
+func (p *PackageResolver) Resolve(head *common.LinkedCommand) {
+	current := head.Next
+
+	if current == nil {
+		fmt.Println(invalidMsg)
+		return
+	}
+
+	//leafs
+	new := "new"
+	add := "add"
+	rm := "rm"
+	list := "list"
+	push := "push"
+
+	if current.Command != new && current.Command != add && current.Command != rm && current.Command != list && current.Command != push {
+		fmt.Println(invalidMsg)
+		return
+	}
+
+	if current.Command == new {
+		if len(current.Args) != 1 {
+			fmt.Println(invalidMsg)
+			return
+		}
+
+		pname := current.Args[0]
+
+		for _, v := range mainConfig.Packages {
+			if v.Name == pname {
+				fmt.Println("Name already exist in packages. Use another name.")
+				fmt.Println(v.display())
+				return
+			}
+		}
+
+		p := Package{pname, []string{}, time.Now()}
+
+		mainConfig.Packages = append(mainConfig.Packages, &p)
+
+		err := mainConfig.save()
+
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println("Package " + pname + " added.")
+	} else if current.Command == "add" {
+		if len(current.Args) != 2 {
+			fmt.Println(invalidMsg)
+			return
+		}
+
+		pkg := current.Args[0]
+		path := current.Args[1]
+
+		for _, v := range mainConfig.Packages {
+			if v.Name == pkg {
+				for _, k := range v.Files {
+					if k == path {
+						fmt.Println("File/folder already exist in this package.")
+						return
+					}
+				}
+
+				_, err := os.Stat(path)
+
+				if err != nil {
+					fmt.Println("File or folder is not valid. -> " + err.Error())
+					return
+				}
+
+				v.Files = append(v.Files, path)
+				err = mainConfig.save()
+
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+
+				fmt.Println("Ok => File/folder added to package.")
+				return
+			}
+		}
+
+		fmt.Println("Package " + pkg + " is not exist!")
+	} else if current.Command == rm {
+		if len(current.Args) != 1 {
+			fmt.Println(invalidMsg)
+			return
+		}
+
+		pkg := current.Args[0]
+
+		for i, v := range mainConfig.Packages {
+			if v.Name == pkg {
+				for k := i; k < len(mainConfig.Packages)-1; i++ {
+					mainConfig.Packages[i] = mainConfig.Packages[i+1]
+				}
+				mainConfig.Packages = mainConfig.Packages[:len(mainConfig.Packages)-1]
+				err := mainConfig.save()
+
+				if err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+
+				fmt.Println("Package " + pkg + " removed.")
+				return
+			}
+		}
+		fmt.Println("Package is not exist.")
+
+	} else if current.Command == list {
+		msg := "Current packages:\n"
+
+		for _, v := range mainConfig.Packages {
+			msg += v.display() + "\n"
+		}
+
+		println(msg)
+
+		//  TODO
+	} else if current.Command == push {
+
 	}
 }

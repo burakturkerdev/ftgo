@@ -208,7 +208,7 @@ func (p *PackageResolver) Resolve(head *common.LinkedCommand) {
 
 		fmt.Println("Package " + pkg + " is not exist!")
 	} else if current.Command == rm {
-		if len(current.Args) != 1 {
+		if len(current.Args) != 1 && len(current.Args) != 2 {
 			fmt.Println(invalidMsg)
 			return
 		}
@@ -217,19 +217,44 @@ func (p *PackageResolver) Resolve(head *common.LinkedCommand) {
 
 		for i, v := range mainConfig.Packages {
 			if v.Name == pkg {
-				for k := i; k < len(mainConfig.Packages)-1; i++ {
-					mainConfig.Packages[i] = mainConfig.Packages[i+1]
-				}
-				mainConfig.Packages = mainConfig.Packages[:len(mainConfig.Packages)-1]
-				err := mainConfig.save()
+				if len(current.Args) == 1 {
+					for k := i; k < len(mainConfig.Packages)-1; k++ {
+						mainConfig.Packages[k] = mainConfig.Packages[k+1]
+					}
+					mainConfig.Packages = mainConfig.Packages[:len(mainConfig.Packages)-1]
+					err := mainConfig.save()
 
-				if err != nil {
-					fmt.Println(err.Error())
+					if err != nil {
+						fmt.Println(err.Error())
+						return
+					}
+
+					fmt.Println("Package " + pkg + " removed.")
+					return
+				} else if len(current.Args) == 2 {
+					f := current.Args[1]
+
+					for l, file := range v.Files {
+						if f == file {
+
+							for k := l; k < len(v.Files)-1; k++ {
+								v.Files[k] = v.Files[k+1]
+							}
+							v.Files = v.Files[:len(v.Files)-1]
+							err := mainConfig.save()
+
+							if err != nil {
+								fmt.Println(err.Error())
+								return
+							}
+
+							fmt.Println(f + " removed from " + pkg)
+							return
+						}
+					}
+					fmt.Println(f + " not exist in " + pkg)
 					return
 				}
-
-				fmt.Println("Package " + pkg + " removed.")
-				return
 			}
 		}
 		fmt.Println("Package is not exist.")

@@ -21,7 +21,6 @@ FtGo is server and client application designed for secure file transfer. It util
 | `ftgo package push -PACKAGENAME` <br> `[-SERVERNAME or -SERVERADDRESS]` | Pushes package to server            |
 | `ftgo push -FILE/DIRECTORY` <br> `[-SERVERNAME or -SERVERADDRESS]`      | Pushes file or directory to server                 |
 | `ftgo server connect` <br> `[-SERVERNAME or -SERVERADDRESS]`            | Connects to server and lists all files and directories |
-| `ftgo pull -PATH -DESTINATION`            | Pulls directory or file from server to destination (if destination is blank, pulls to default) |
 | `ftgo dir set -PATH`                     | Sets the default directory for pulling             |
 | `ftgo dir get`                           | Gets the default directory for pulling             |
 

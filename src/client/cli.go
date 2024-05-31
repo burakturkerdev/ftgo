@@ -586,6 +586,9 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 			}
 
 		} else if command == pull {
+			if arg == "" {
+				fmt.Println("Commands: cd, pull (fileId/folderId) or exit")
+			}
 
 		} else if command == exit {
 			return
@@ -669,16 +672,17 @@ func handleAuth(c *common.Connection) common.Message {
 }
 
 func createProgress(name string, total int, completed chan int) {
-	for range completed {
+	for progress := range completed {
 		msg := name + " -> "
-		for range completed {
+
+		for i := 0; i < progress; i++ {
 			msg += "="
 		}
-		for range total - <-completed {
+
+		for i := progress; i < total; i++ {
 			msg += "-"
 		}
-		fmt.Println("\033[2K")
+
 		fmt.Println(msg)
 	}
-	fmt.Println()
 }

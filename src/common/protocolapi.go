@@ -10,6 +10,7 @@ import (
 type Connection struct {
 	conn          net.Conn
 	content       []byte
+	EOF           bool
 	readed        uint64
 	messageReaded bool
 }
@@ -20,6 +21,7 @@ func CreateConnection(c net.Conn) *Connection {
 		conn:          c,
 		content:       nil,
 		readed:        0,
+		EOF:           false,
 		messageReaded: false,
 	}
 	con.readed = 0
@@ -30,7 +32,8 @@ func (c *Connection) Read() *Connection {
 	c.content = make([]byte, ExchangeBufferSize+4)
 	n, err := c.conn.Read(c.content)
 	if err != nil {
-		fmt.Println("error occured when reading data")
+		c.EOF = true
+		fmt.Println("error occured when reading data", err.Error())
 	}
 	c.content = c.content[0:n]
 	c.readed = 0

@@ -20,7 +20,6 @@ func startDaemon() {
 	if err := lib.LoadConfig(); err != nil {
 		log.Fatal(err)
 	}
-
 	startServer()
 	wg.Wait()
 }
@@ -74,7 +73,6 @@ func handleConnection(conn net.Conn) {
 				c.SendMessage(common.SUnAuthorized)
 				return
 			}
-			c.SendMessage(common.Success)
 		}
 		if lib.MainConfig.ReadPerm == lib.ReadPermIp {
 			var allowed bool
@@ -137,6 +135,8 @@ func handleConnection(conn net.Conn) {
 		c.SendJson(fileinfos)
 	case common.CDownload:
 		ensureReadAuthentication()
+		//We are ready to sending data
+		c.SendMessage(common.Success)
 
 		stat, err := os.Stat(absolutePath)
 
@@ -204,7 +204,6 @@ func handleConnection(conn net.Conn) {
 				c.SendMessage(common.SUnAuthorized)
 				return
 			}
-			c.SendMessage(common.Success)
 		}
 		if lib.MainConfig.WritePerm == lib.WritePermIp {
 			var allowed bool
@@ -259,7 +258,7 @@ func handleConnection(conn net.Conn) {
 
 		for {
 			c.Read().GetMessage(&m)
-			if m != common.Completed {
+			if m != common.Completed && !c.EOF {
 				if !readStarted {
 					file.Truncate(0)
 					readStarted = true

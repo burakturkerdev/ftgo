@@ -410,12 +410,13 @@ func pushFileToServer(fp string, c *common.Connection) error {
 
 	ch := make(chan int)
 
+	defer close(ch)
+
 	go createProgress(fp, int(stat.Size()/common.ExchangeBufferSize), ch)
 
 	for {
 		readed, err := reader.Read(buffer)
 		if err != nil && err != io.EOF {
-			close(ch)
 			return err
 		}
 
@@ -425,7 +426,6 @@ func pushFileToServer(fp string, c *common.Connection) error {
 			for {
 				c.Read().GetMessage(&m)
 				if m == common.Completed {
-					close(ch)
 					return nil
 				}
 			}
@@ -437,7 +437,6 @@ func pushFileToServer(fp string, c *common.Connection) error {
 			for {
 				c.Read().GetMessage(&m)
 				if m == common.Completed {
-					close(ch)
 					return nil
 				}
 			}
@@ -589,7 +588,98 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 			if arg == "" {
 				fmt.Println("Commands: cd, pull (fileId/folderId) or exit")
 			}
-			// TO - DO
+
+			valid := false
+			for _, v := range infos {
+				if v.Name == arg {
+					valid = true
+					// BIG TODO
+					if v.IsDir {
+
+					} else {
+						// AUTHENTICATION IMPL TO-DO
+						c, err := net.Dial("tcp", address)
+
+						if err != nil {
+							fmt.Println(arg+" can't be downloaded.", err.Error())
+
+						}
+						defer c.Close()
+						con := common.CreateConnection(c)
+
+						con.SendMessageWithString(common.CDownload, currentDirectory+"/"+arg)
+
+						var m common.Message
+
+						con.Read().GetMessage(&m)
+
+						if m == common.SAuthenticate {
+							m = handleAuth(con)
+						}
+
+						if m != common.Success {
+							fmt.Println(arg+" can't be downloaded.", err.Error())
+						}
+
+						path := mainConfig.Downdir + currentDirectory + "/" + arg
+
+						for i := len(path) - 1; i >= 0; i-- {
+							if path[i] == '/' {
+								os.MkdirAll(path[:i], 0755)
+								break
+							}
+						}
+
+						file, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0755)
+
+						if err != nil {
+							fmt.Println(arg+"can't be downloaded.", err.Error())
+						}
+						//Starting to read buffer
+
+						buffer := make([]byte, common.ExchangeBufferSize)
+
+						readStarted := false
+
+						read := 0
+
+						ch := make(chan int)
+						defer close(ch)
+
+						go createProgress(arg, int(v.Size), ch)
+						for {
+
+							con.Read().GetMessage(&m)
+							if m != common.Completed && !con.EOF {
+								if !readStarted {
+									file.Truncate(0)
+									readStarted = true
+								}
+
+								con.GetData(&buffer)
+								_, err = file.Write(buffer)
+
+								if err != nil {
+									fmt.Println("Can't write to file!")
+									return
+								}
+								con.SendMessage(common.Success)
+								read++
+								ch <- read
+							} else {
+								fmt.Println(arg + " download DONE!")
+								con.SendMessage(common.Completed)
+								break
+							}
+						}
+					}
+
+					break
+				}
+			}
+			if !valid {
+				fmt.Println("This is not valid file or directory.")
+			}
 
 		} else if command == exit {
 			return
@@ -599,22 +689,6 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 
 	}
 
-	// file := current.Args[0]
-	//
-	// var path string
-	//
-	//	if len(current.Args) == 2 {
-	//		path = current.Args[0]
-	//		err := os.MkdirAll(path, 0755)
-	//
-	//		if err != nil {
-	//			fmt.Println(err.Error())
-	//			return
-	//		}
-	//	} else {
-	//
-	//		path = mainConfig.Downdir
-	//	}
 }
 
 func listDirs(path string, server string) ([]common.FileInfo, error) {
@@ -625,8 +699,6 @@ func listDirs(path string, server string) ([]common.FileInfo, error) {
 		return nil, errors.New("error while trying to connect server " + err.Error())
 
 	}
-
-	defer con.Close()
 
 	c := common.CreateConnection(con)
 
@@ -642,9 +714,6 @@ func listDirs(path string, server string) ([]common.FileInfo, error) {
 
 	if m == common.SAuthenticate {
 		m = handleAuth(c)
-		if m == common.SUnAuthorized {
-			return nil, errors.New("access denied")
-		}
 	}
 	if m != common.Success {
 		var s string
@@ -655,6 +724,8 @@ func listDirs(path string, server string) ([]common.FileInfo, error) {
 	var infos []common.FileInfo
 
 	c.GetJson(&infos)
+
+	con.Close()
 
 	return infos, nil
 }
@@ -679,7 +750,7 @@ func createProgress(name string, total int, completed chan int) {
 	for progress := range completed {
 		progress = progress / 30000
 
-		msg := "Sending " + name + " -> "
+		msg := "PROGRESS " + name + " -> "
 
 		for i := 0; i < progress; i++ {
 			msg += "="

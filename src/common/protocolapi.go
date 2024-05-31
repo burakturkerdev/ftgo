@@ -33,7 +33,6 @@ func (c *Connection) Read() *Connection {
 	n, err := c.conn.Read(c.content)
 	if err != nil {
 		c.EOF = true
-		fmt.Println("error occured when reading data", err.Error())
 	}
 	c.content = c.content[0:n]
 	c.readed = 0

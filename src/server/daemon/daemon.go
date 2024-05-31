@@ -166,12 +166,6 @@ func handleConnection(conn net.Conn) {
 		readLoop := 0
 
 		for {
-			_, err := reader.Discard(readLoop * common.ExchangeBufferSize)
-
-			if err != nil {
-				c.SendMessageWithString(common.Fail, err.Error())
-				return
-			}
 
 			readed, err := reader.Read(buffer)
 
@@ -185,11 +179,31 @@ func handleConnection(conn net.Conn) {
 				if readed != 0 {
 					c.SendData(buffer)
 				}
-				c.SendMessage(common.Success)
-				return
+
+				c.Read().GetMessage(&message)
+
+				if message != common.Success {
+					c.SendMessageWithString(common.Fail, "Corrupted data recieved.")
+					return
+				}
+				for {
+					c.SendMessage(common.Completed)
+					c.Read().GetMessage(&message)
+					if message == common.Completed {
+						return
+					}
+				}
+
 			}
 
 			c.SendData(buffer)
+
+			c.Read().GetMessage(&message)
+
+			if message != common.Success {
+				c.SendMessageWithString(common.Fail, "Corrupted data recieved.")
+				return
+			}
 			readLoop++
 		}
 	case common.CUpload:

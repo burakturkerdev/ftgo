@@ -121,15 +121,21 @@ func handleConnection(conn net.Conn) {
 
 		for i, f := range files {
 			if !f.IsDir() {
-				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 0}
+				var size int64 = 0
+
+				info, err := f.Info()
+
+				if err == nil {
+					size = info.Size()
+				}
+				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: size}
 			} else {
 				//stat, err := os.Stat(absolutePath + f.Name())
 
 				if err != nil {
 					fmt.Println("Log => Can't get size of file.")
 				}
-				// File size is not working, cause pointer nil reference error.
-				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 100000000000}
+				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 0}
 			}
 		}
 		c.SendJson(fileinfos)

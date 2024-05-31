@@ -12,7 +12,6 @@ type Connection struct {
 	content       []byte
 	readed        uint64
 	messageReaded bool
-	HasData       bool
 }
 
 func CreateConnection(c net.Conn) *Connection {
@@ -29,7 +28,11 @@ func CreateConnection(c net.Conn) *Connection {
 
 func (c *Connection) Read() *Connection {
 	c.content = make([]byte, ExchangeBufferSize+4)
-	c.conn.Read(c.content)
+	n, err := c.conn.Read(c.content)
+	if err != nil {
+		fmt.Println("error occured when reading data")
+	}
+	c.content = c.content[0:n]
 	c.readed = 0
 	c.messageReaded = false
 

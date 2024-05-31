@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 )
 
 var wg sync.WaitGroup
@@ -50,10 +49,6 @@ func acceptConnections(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 
-		time := time.Now().Add(5 * time.Second)
-
-		conn.SetDeadline(time)
-
 		if err != nil {
 			fmt.Println("Log => Handshake failed with some client.")
 		}
@@ -75,7 +70,6 @@ func handleConnection(conn net.Conn) {
 
 			var password string
 			c.Read().IgnoreMessage().GetString(&password)
-
 			if !lib.ValidateHash([]byte(lib.MainConfig.Password), []byte(password)) {
 				c.SendMessage(common.SUnAuthorized)
 				return
@@ -119,7 +113,6 @@ func handleConnection(conn net.Conn) {
 	switch message {
 	case common.CListDirs:
 		ensureReadAuthentication()
-
 		files, err := os.ReadDir(absolutePath)
 
 		if err != nil {
@@ -132,12 +125,13 @@ func handleConnection(conn net.Conn) {
 			if !f.IsDir() {
 				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 0}
 			} else {
-				stat, err := os.Stat(absolutePath + f.Name())
+				//stat, err := os.Stat(absolutePath + f.Name())
 
 				if err != nil {
 					fmt.Println("Log => Can't get size of file.")
 				}
-				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: stat.Size()}
+				// File size is not working, cause pointer nil reference error.
+				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 100000000000}
 			}
 		}
 		c.SendJson(fileinfos)

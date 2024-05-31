@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/binary"
+	"strconv"
 )
 
 type Message uint32
@@ -38,4 +39,14 @@ type FileInfo struct {
 	Name  string
 	IsDir bool
 	Size  int64
+}
+
+func (f *FileInfo) Display() string {
+	msg := f.Name
+	if f.IsDir {
+		msg += "/"
+	} else {
+		msg += " " + strconv.Itoa(int(f.Size/(1024*1024))) + " MB"
+	}
+	return msg
 }

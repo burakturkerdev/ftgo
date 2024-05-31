@@ -10,12 +10,15 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
 var resolvers = map[string]common.Resolver{
 	"server":  &ServerResolver{},
 	"package": &PackageResolver{},
+	"push":    &PushResolver{},
+	"connect": &ConnectResolver{},
 }
 
 type ServerResolver struct{}
@@ -285,70 +288,106 @@ func (p *PackageResolver) Resolve(head *common.LinkedCommand) {
 			if v.Name == pkgname {
 				for _, f := range v.Files {
 
-					var address string
-
-					for n, a := range mainConfig.Servers {
-						if n == sv {
-							address = a
-							break
-						}
-					}
-
-					if address == "" {
-						for i, c := range sv {
-							if c == ':' {
-								parse := net.ParseIP(sv[:i])
-
-								if parse == nil {
-									fmt.Println("This is not a valid ip address and port.")
-									return
-								}
-								address = sv
-							}
-						}
-					}
-
-					if address == "" {
-						fmt.Println("This is not a valid ip address and port.")
-						return
-					}
-
-					dial, err := net.Dial("tcp", address)
+					err := tryUploading(f, sv)
 
 					if err != nil {
-						fmt.Println(f + " -> error while trying to push file => " + err.Error())
-						continue
-					}
-
-					defer dial.Close()
-
-					c := common.CreateConnection(dial)
-
-					c.SendMessageWithString(common.CUpload, f)
-
-					var m common.Message
-
-					c.Read().GetMessage(&m)
-
-					if m == common.SAuthenticate {
-						m = handleAuth(c)
-					}
-					if m != common.Success {
-						var s string
-						c.GetString(&s)
-						fmt.Println("Error from server -> " + s)
+						fmt.Println(err.Error())
 						return
-					}
-					err = pushFileToServer(f, c)
-
-					if err != nil {
-						fmt.Println(f + " -> error while trying to push file => " + err.Error())
 					}
 				}
 			}
 		}
 
 	}
+}
+
+type PushResolver struct{}
+
+func (r *PushResolver) Resolve(head *common.LinkedCommand) {
+	current := head
+
+	if len(current.Args) != 2 {
+		fmt.Println(invalidMsg)
+		return
+	}
+
+	file := current.Args[0]
+	server := current.Args[1]
+
+	err := tryUploading(file, server)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+}
+
+func tryUploading(file string, serveraddressOrname string) error {
+	var address string
+
+	for n, a := range mainConfig.Servers {
+		if n == serveraddressOrname {
+			address = a
+			break
+		}
+	}
+
+	if address == "" {
+		for i, c := range serveraddressOrname {
+			if c == ':' {
+				parse := net.ParseIP(serveraddressOrname[:i])
+
+				if parse == nil {
+					return errors.New("this is not a valid ip address and port")
+				}
+				address = serveraddressOrname
+			}
+		}
+	}
+
+	if address == "" {
+		return errors.New("this is not a valid ip address or server")
+	}
+
+	dial, err := net.Dial("tcp", address)
+
+	if err != nil {
+		return errors.New(file + " -> error while trying to push file => " + err.Error())
+	}
+
+	defer dial.Close()
+
+	c := common.CreateConnection(dial)
+
+	c.SendMessageWithString(common.CUpload, file)
+
+	var m common.Message
+
+	c.Read().GetMessage(&m)
+
+	if m == common.SUnAuthorized {
+		return errors.New("access denied")
+	}
+
+	if m == common.SAuthenticate {
+		m = handleAuth(c)
+		if m == common.SUnAuthorized {
+			return errors.New("access denied")
+		}
+	}
+	if m != common.Success {
+		var s string
+		c.GetString(&s)
+		return errors.New("error from server -> " + s)
+	}
+	err = pushFileToServer(file, c)
+
+	if err != nil {
+		fmt.Println(file + " -> error while trying to push file => " + err.Error())
+	}
+
+	return nil
 }
 
 func pushFileToServer(fp string, c *common.Connection) error {
@@ -422,13 +461,206 @@ func pushFileToServer(fp string, c *common.Connection) error {
 	}
 }
 
+type ConnectResolver struct{}
+
+func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
+	current := head
+
+	if len(current.Args) != 1 {
+		fmt.Println(invalidMsg)
+		return
+	}
+
+	server := current.Args[0]
+
+	var address string
+
+	for n, a := range mainConfig.Servers {
+		if n == server {
+			address = a
+			break
+		}
+	}
+
+	if address == "" {
+		for i, c := range server {
+			if c == ':' {
+				parse := net.ParseIP(server[:i])
+
+				if parse == nil {
+					fmt.Println("this is not a valid ip address or port")
+					return
+				}
+				address = server
+			}
+		}
+	}
+
+	if address == "" {
+		fmt.Println("this is not a valid ip address or server")
+		return
+	}
+
+	currentDirectory := "/"
+
+	infos, err := listDirs(currentDirectory, address)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	for _, v := range infos {
+		fmt.Println(v.Display())
+	}
+
+	cd := "cd"
+	pull := "pull"
+	exit := "exit"
+
+	parse := func(input string) (string, string) {
+		input = strings.Replace(input, "\n", "", -1)
+		for i := len(input) - 1; i >= 0; i-- {
+			if input[i] == ' ' {
+				return input[0:i], input[i+1:]
+			}
+		}
+		return input, ""
+	}
+
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		input, _ := reader.ReadString('\n')
+
+		command, arg := parse(input)
+
+		if command == cd {
+			if arg == "" {
+				fmt.Println("Commands: cd, pull (fileId/folderId) or exit")
+			}
+
+			if arg == ".." {
+				if currentDirectory == "/" {
+					return
+				}
+
+				for i := len(currentDirectory) - 1; i >= 0; i-- {
+					if currentDirectory[i] == '/' {
+						currentDirectory = currentDirectory[:i]
+						break
+					}
+				}
+			} else {
+				set := false
+				for _, v := range infos {
+					if v.IsDir && v.Name == arg {
+						if currentDirectory != "/" {
+							currentDirectory += "/" + arg
+						} else {
+							currentDirectory += arg
+						}
+						set = true
+					}
+				}
+				if !set {
+					fmt.Println("This is not a directory.")
+					continue
+				}
+			}
+			fmt.Println(currentDirectory)
+
+			infos, err = listDirs(currentDirectory, address)
+
+			if err != nil {
+				fmt.Println(err.Error())
+				return
+			}
+
+			for i := 0; i < 500; i++ {
+				fmt.Println("\n")
+			}
+
+			for _, v := range infos {
+				fmt.Println(v.Display())
+			}
+
+		} else if command == pull {
+
+		} else if command == exit {
+			return
+		} else {
+			fmt.Println("Commands: cd, pull (fileId/folderId) or exit")
+		}
+
+	}
+
+	// file := current.Args[0]
+	//
+	// var path string
+	//
+	//	if len(current.Args) == 2 {
+	//		path = current.Args[0]
+	//		err := os.MkdirAll(path, 0755)
+	//
+	//		if err != nil {
+	//			fmt.Println(err.Error())
+	//			return
+	//		}
+	//	} else {
+	//
+	//		path = mainConfig.Downdir
+	//	}
+}
+
+func listDirs(path string, server string) ([]common.FileInfo, error) {
+
+	con, err := net.Dial("tcp", server)
+
+	if err != nil {
+		return nil, errors.New("error while trying to connect server " + err.Error())
+
+	}
+
+	defer con.Close()
+
+	c := common.CreateConnection(con)
+
+	c.SendMessageWithString(common.CListDirs, path)
+
+	var m common.Message
+
+	c.Read().GetMessage(&m)
+
+	if m == common.SUnAuthorized {
+		return nil, errors.New("access denied")
+	}
+
+	if m == common.SAuthenticate {
+		m = handleAuth(c)
+		if m == common.SUnAuthorized {
+			return nil, errors.New("access denied")
+		}
+	}
+	if m != common.Success {
+		var s string
+		c.GetString(&s)
+		return nil, errors.New("error from server -> " + s)
+	}
+
+	var infos []common.FileInfo
+
+	c.GetJson(&infos)
+
+	return infos, nil
+}
+
 // If authentication needed it will get password from user
 func handleAuth(c *common.Connection) common.Message {
 	var m common.Message
 	pw := common.ReadPassword()
 
 	c.SendString(string(pw))
-
 	c.Read().GetMessage(&m)
 	if m != common.Success {
 		log.Fatal("Authentication error.")

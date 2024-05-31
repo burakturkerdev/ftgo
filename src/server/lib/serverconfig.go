@@ -25,8 +25,8 @@ func (c *ServerConfig) Save() error {
 }
 
 func (c *ServerConfig) SetFieldsToDefault() error {
-	c.WritePerm = WritePermReadOnly
-	c.ReadPerm = ReadPermPassword
+	c.WritePerm = WritePermEveryone
+	c.ReadPerm = ReadPermEveryone
 
 	home, err := os.UserHomeDir()
 	if err != nil {

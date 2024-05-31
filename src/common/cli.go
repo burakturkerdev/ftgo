@@ -18,8 +18,6 @@ type Resolver interface {
 	Resolve(head *LinkedCommand)
 }
 
-const invalidMsg = "Command is invalid"
-
 func LoadHeadCommand(args []string) *LinkedCommand {
 	head := &LinkedCommand{}
 

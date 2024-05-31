@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 var wg sync.WaitGroup
@@ -48,6 +49,10 @@ func acceptConnections(listener net.Listener) {
 	defer listener.Close()
 	for {
 		conn, err := listener.Accept()
+
+		time := time.Now().Add(5 * time.Second)
+
+		conn.SetDeadline(time)
 
 		if err != nil {
 			fmt.Println("Log => Handshake failed with some client.")
@@ -101,11 +106,13 @@ func handleConnection(conn net.Conn) {
 	var message common.Message
 	c.Read().GetMessage(&message)
 
-	// Set the working path if exists(if client didn't send path string will be "").
-	var path string
-	c.GetString(&path)
-	if !strings.HasPrefix(path, "/") { // any path starting with / would be an absolute path from root, so we just keep the path as it is
-		path = filepath.Join(lib.MainConfig.Directory, path)
+	var absolutePath string
+
+	var clientPath string
+	c.GetString(&clientPath)
+
+	if !strings.HasPrefix(absolutePath, "/") {
+		absolutePath = filepath.Join(lib.MainConfig.Directory, clientPath)
 	}
 
 	// List dirs operation
@@ -113,7 +120,7 @@ func handleConnection(conn net.Conn) {
 	case common.CListDirs:
 		ensureReadAuthentication()
 
-		files, err := os.ReadDir(path)
+		files, err := os.ReadDir(absolutePath)
 
 		if err != nil {
 			fmt.Println("Log => Client is trying to read invalid path -> " + err.Error())
@@ -125,7 +132,7 @@ func handleConnection(conn net.Conn) {
 			if !f.IsDir() {
 				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: 0}
 			} else {
-				stat, err := os.Stat(path + f.Name())
+				stat, err := os.Stat(absolutePath + f.Name())
 
 				if err != nil {
 					fmt.Println("Log => Can't get size of file.")
@@ -137,22 +144,22 @@ func handleConnection(conn net.Conn) {
 	case common.CDownload:
 		ensureReadAuthentication()
 
-		stat, err := os.Stat(path)
+		stat, err := os.Stat(absolutePath)
 
 		if err != nil {
-			c.SendMessageWithData(common.Fail, err.Error())
+			c.SendMessageWithString(common.Fail, err.Error())
 			return
 		}
 
 		if stat.IsDir() {
-			c.SendMessageWithData(common.Fail, "This is a directory.")
+			c.SendMessageWithString(common.Fail, "This is a directory.")
 			return
 		}
 
-		file, err := os.Open(path)
+		file, err := os.Open(absolutePath)
 
 		if err != nil {
-			c.SendMessageWithData(common.Fail, err.Error())
+			c.SendMessageWithString(common.Fail, err.Error())
 			return
 		}
 
@@ -168,14 +175,14 @@ func handleConnection(conn net.Conn) {
 			_, err := reader.Discard(readLoop * common.ExchangeBufferSize)
 
 			if err != nil {
-				c.SendMessageWithData(common.Fail, err.Error())
+				c.SendMessageWithString(common.Fail, err.Error())
 				return
 			}
 
 			readed, err := reader.Read(buffer)
 
 			if err != nil && err != io.EOF {
-				c.SendMessageWithData(common.Fail, err.Error())
+				c.SendMessageWithString(common.Fail, err.Error())
 				return
 			}
 
@@ -184,7 +191,7 @@ func handleConnection(conn net.Conn) {
 				if readed != 0 {
 					c.SendData(buffer)
 				}
-				c.SendMessage(common.Completed)
+				c.SendMessage(common.Success)
 				return
 			}
 
@@ -196,7 +203,6 @@ func handleConnection(conn net.Conn) {
 		if lib.MainConfig.WritePerm == lib.WritePermPassword {
 
 			c.SendMessage(common.SAuthenticate)
-
 			var password string
 			c.Read().IgnoreMessage().GetString(&password)
 
@@ -226,19 +232,28 @@ func handleConnection(conn net.Conn) {
 		}
 		// End permission checks
 
+		// Is file name provided?
+		if clientPath == "" {
+			c.SendMessageWithString(common.Fail, "specify file name")
+			return
+		}
+
 		// Creating dirs (it will not do anything if dirs already exist)
-		for i := len(path); i <= 0; i-- {
-			if path[i] == '/' {
-				os.MkdirAll(path[:i], 0)
+		for i := len(absolutePath) - 1; i >= 0; i-- {
+			if absolutePath[i] == '/' {
+				os.MkdirAll(absolutePath[:i], 0755)
 				break
 			}
 		}
 
-		file, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0)
+		file, err := os.OpenFile(absolutePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0755)
 
 		if err != nil {
-			c.SendMessageWithData(common.Fail, err.Error())
+			c.SendMessageWithString(common.Fail, err.Error())
+			return
 		}
+		// We are ready for data!
+		c.SendMessage(common.Success)
 
 		//Starting to read buffer
 
@@ -250,26 +265,23 @@ func handleConnection(conn net.Conn) {
 
 		for {
 			c.Read().GetMessage(&m)
+			if m != common.Completed {
+				if !readStarted {
+					file.Truncate(0)
+					readStarted = true
+				}
 
-			if m != common.Success && m != common.Completed {
-				c.SendMessageWithData(common.Fail, "message is not valid")
-			}
+				c.GetData(&buffer)
+				_, err = file.Write(buffer)
 
-			if m == common.Completed {
-				return
-			}
-
-			if !readStarted {
-				file.Truncate(0)
-				readStarted = true
-			}
-
-			c.GetData(&buffer)
-
-			_, err = file.Write(buffer)
-
-			if err != nil {
-				c.SendMessageWithData(common.Fail, "CRITICAL "+err.Error())
+				if err != nil {
+					c.SendMessageWithString(common.Fail, "CRITICAL "+err.Error())
+					return
+				}
+				c.SendMessage(common.Success)
+			} else {
+				c.SendMessage(common.Completed)
+				break
 			}
 		}
 	default:

@@ -25,8 +25,7 @@ const (
 )
 
 const (
-	// 10 MB (DEFAULT)
-	ExchangeBufferSize = 1024 * 1024 * 10
+	ExchangeBufferSize = 1024
 )
 
 func messageToBytes(m Message) []byte {

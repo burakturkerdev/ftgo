@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"burakturkerdev/ftgo/src/common"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -323,10 +324,21 @@ func (p *PackageResolver) Resolve(head *common.LinkedCommand) {
 
 					c := common.CreateConnection(dial)
 
-					c.SendMessage(common.CUpload)
+					c.SendMessageWithString(common.CUpload, f)
 
-					handleAuth(c)
+					var m common.Message
 
+					c.Read().GetMessage(&m)
+
+					if m == common.SAuthenticate {
+						m = handleAuth(c)
+					}
+					if m != common.Success {
+						var s string
+						c.GetString(&s)
+						fmt.Println("Error from server -> " + s)
+						return
+					}
 					err = pushFileToServer(f, c)
 
 					if err != nil {
@@ -340,14 +352,13 @@ func (p *PackageResolver) Resolve(head *common.LinkedCommand) {
 }
 
 func pushFileToServer(fp string, c *common.Connection) error {
-	file, err := os.OpenFile(fp, 0, 0)
-
+	file, err := os.Open(fp)
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	stat, err := os.Stat(fp)
-
 	if err != nil {
 		return err
 	}
@@ -363,12 +374,6 @@ func pushFileToServer(fp string, c *common.Connection) error {
 	go createProgress(fp, int(stat.Size()/common.ExchangeBufferSize), ch)
 
 	for {
-		_, err = reader.Discard(send * common.ExchangeBufferSize)
-		if err != nil && err != io.EOF {
-			close(ch)
-			return err
-		}
-
 		readed, err := reader.Read(buffer)
 		if err != nil && err != io.EOF {
 			close(ch)
@@ -376,42 +381,59 @@ func pushFileToServer(fp string, c *common.Connection) error {
 		}
 
 		if readed == 0 {
-			close(ch)
 			c.SendMessage(common.Completed)
-			return nil
+			var m common.Message
+			for {
+				c.Read().GetMessage(&m)
+				if m == common.Completed {
+					close(ch)
+					return nil
+				}
+			}
 		}
 
-		if readed < common.ExchangeBufferSize {
-			buffer = buffer[:readed]
+		if err == io.EOF {
+			c.SendMessage(common.Completed)
+			var m common.Message
+			for {
+				c.Read().GetMessage(&m)
+				if m == common.Completed {
+					close(ch)
+					return nil
+				}
+			}
 		}
 
-		c.SendData(buffer)
+		// Send data
+		c.SendData(buffer[:readed])
 
+		var m common.Message
+
+		// Receive acknowledgment
+		c.Read().GetMessage(&m)
+
+		if m != common.Success {
+			var d string
+			c.GetString(&d)
+			return errors.New(d)
+		}
 		send++
 		ch <- send
 	}
 }
 
 // If authentication needed it will get password from user
-func handleAuth(c *common.Connection) {
+func handleAuth(c *common.Connection) common.Message {
+	var m common.Message
+	pw := common.ReadPassword()
 
-	var message common.Message
+	c.SendString(string(pw))
 
-	c.Read().GetMessage(&message)
-
-	if message == common.SAuthenticate {
-		pw := common.ReadPassword()
-
-		c.SendString(string(pw))
-		c.Read().GetMessage(&message)
-
-		if message == common.Success {
-			return
-		} else {
-			log.Fatal("Can't authenticate with this password.")
-		}
+	c.Read().GetMessage(&m)
+	if m != common.Success {
+		log.Fatal("Authentication error.")
 	}
-
+	return common.Success
 }
 
 func createProgress(name string, total int, completed chan int) {

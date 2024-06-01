@@ -4,7 +4,7 @@
 echo "Installation starting."
 
 # Build and move client
-cd /src/client
+cd src/client
 go build -o ftgo
 sudo mv ftgo /usr/bin
 

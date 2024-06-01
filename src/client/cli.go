@@ -412,7 +412,14 @@ func pushFileToServer(fp string, c *common.Connection) error {
 
 	buffer := make([]byte, common.ExchangeBufferSize)
 
-	send := 0
+	var send int64 = 0
+	channel := make(chan int64)
+
+	defer close(channel)
+
+	stat, _ := file.Stat()
+
+	go createProgressInfo(fp, stat.Size()/(common.ExchangeBufferSize), channel)
 
 	for {
 		readed, err := reader.Read(buffer)
@@ -456,6 +463,7 @@ func pushFileToServer(fp string, c *common.Connection) error {
 			return errors.New(d)
 		}
 		send++
+		channel <- send * common.ExchangeBufferSize
 	}
 }
 
@@ -508,9 +516,20 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 		return
 	}
 
-	for _, v := range infos {
-		fmt.Println(v.Display())
+	drawFiles := func() {
+
+		for i := 0; i < 250; i++ {
+			fmt.Println("\n")
+		}
+
+		for _, v := range infos {
+			fmt.Println("---------------------------------------")
+			fmt.Println(v.Display())
+		}
+		fmt.Println("---------------------------------------")
 	}
+
+	drawFiles()
 
 	cd := "cd"
 	pull := "pull"
@@ -529,13 +548,16 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
+		fmt.Println("\n")
+		fmt.Print("COMMAND -> ")
 		input, _ := reader.ReadString('\n')
 
 		command, arg := parse(input)
 
 		if command == cd {
 			if arg == "" {
-				fmt.Println("Commands: cd, pull (fileId/folderId) or exit")
+				drawFiles()
+				fmt.Println("\nCommands: cd, pull (fileId/folderId) or exit")
 			}
 
 			if arg == ".." {
@@ -575,17 +597,11 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 				return
 			}
 
-			for i := 0; i < 500; i++ {
-				fmt.Println("\n")
-			}
-
-			for _, v := range infos {
-				fmt.Println(v.Display())
-			}
-
+			drawFiles()
 		} else if command == pull {
 			if arg == "" {
-				fmt.Println("Commands: cd, pull (fileId/folderId) or exit")
+				drawFiles()
+				fmt.Println("\nCommands: cd, pull (fileId/folderId) or exit")
 			}
 
 			valid := false
@@ -613,19 +629,22 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 						recursiveDownload(downloadDirectory, address)
 					} else {
 						downloadSingle(downloadDirectory, address, v.Size)
+						drawFiles()
 					}
 
 					break
 				}
 			}
 			if !valid {
-				fmt.Println("This is not valid file or directory.")
+				drawFiles()
+				fmt.Println("\nThis is not valid file or directory.")
 			}
 
 		} else if command == exit {
 			return
 		} else {
-			fmt.Println("Commands: cd, pull (fileId/folderId) or exit")
+			drawFiles()
+			fmt.Println("\nCommands: cd, pull (fileId/folderId) or exit")
 		}
 
 	}
@@ -733,9 +752,9 @@ func recursiveDownload(path string, server string) error {
 		}
 
 		if v.IsDir {
-			go recursiveDownload(newPath, server)
+			recursiveDownload(newPath, server)
 		} else {
-			go downloadSingle(newPath, server, v.Size)
+			downloadSingle(newPath, server, v.Size)
 		}
 	}
 	return nil
@@ -786,7 +805,13 @@ func downloadSingle(path string, server string, size int64) {
 
 	readStarted := false
 
-	read := 0
+	var read int64 = 0
+
+	channel := make(chan int64)
+
+	defer close(channel)
+
+	go createProgressInfo(path, size/(common.ExchangeBufferSize), channel)
 
 	for {
 		con.Read().GetMessage(&m)
@@ -807,6 +832,8 @@ func downloadSingle(path string, server string, size int64) {
 			}
 			con.SendMessage(common.Success)
 			read++
+			channel <- read * common.ExchangeBufferSize
+			continue
 		} else {
 			fmt.Println(path + " download DONE!")
 			con.SendMessage(common.Completed)
@@ -834,4 +861,19 @@ func handleAuth(c *common.Connection) common.Message {
 		log.Fatal("Authentication error.")
 	}
 	return common.Success
+}
+
+func createProgressInfo(fName string, total int64, progress chan int64) {
+	for p := range progress {
+		ratio := (float64(p) / float64(total)) * 100
+		ratio = ratio / 10000
+		fmt.Print("\033[F\033[K")
+		if ratio > 100 {
+			ratio = 100
+		}
+		if ratio < 0 {
+			ratio = 0
+		}
+		fmt.Println(fName + " -> " + strconv.Itoa(int(ratio)) + "%")
+	}
 }

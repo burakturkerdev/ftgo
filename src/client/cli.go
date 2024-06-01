@@ -19,9 +19,12 @@ var resolvers = map[string]common.Resolver{
 	"package": &PackageResolver{},
 	"push":    &PushResolver{},
 	"connect": &ConnectResolver{},
+	"dir":     &DirResolver{},
 }
 
 type ServerResolver struct{}
+
+var pw string = ""
 
 func (r *ServerResolver) Resolve(head *common.LinkedCommand) {
 	current := head.Next
@@ -360,7 +363,15 @@ func tryUploading(file string, serveraddressOrname string) error {
 
 	c := common.CreateConnection(dial)
 
-	c.SendMessageWithString(common.CUpload, file)
+	// Exclude home dir for uploading.
+
+	homedir, err := os.UserHomeDir()
+
+	if err == nil {
+		c.SendMessageWithString(common.CUpload, strings.Replace(file, homedir, "", -1))
+	} else {
+		c.SendMessageWithString(common.CUpload, file)
+	}
 
 	var m common.Message
 
@@ -581,7 +592,6 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 			for _, v := range infos {
 				if v.Name == arg {
 					valid = true
-					// BIG TODO
 					var downloadDirectory string
 					if currentDirectory != "/" {
 						downloadDirectory = currentDirectory + "/" + arg
@@ -618,6 +628,53 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 			fmt.Println("Commands: cd, pull (fileId/folderId) or exit")
 		}
 
+	}
+
+}
+
+type DirResolver struct{}
+
+func (r *DirResolver) Resolve(head *common.LinkedCommand) {
+	current := head.Next
+
+	if current == nil {
+		fmt.Println(invalidMsg)
+		return
+	}
+
+	set := "set"
+	get := "get"
+
+	if current.Command != get && current.Command != set {
+		fmt.Println(invalidMsg)
+		return
+	}
+
+	if current.Command == set {
+		if len(current.Args) != 1 {
+			fmt.Println(invalidMsg)
+			return
+		}
+
+		dir := current.Args[0]
+		_, err := os.Stat(dir)
+
+		if err != nil {
+			fmt.Println("Invalid path.")
+			return
+		}
+
+		mainConfig.Downdir = dir
+		err = mainConfig.save()
+
+		if err != nil {
+			fmt.Println(err.Error())
+			return
+		}
+
+		fmt.Println("Download directory updated.")
+	} else if current.Command == get {
+		fmt.Println("Download directory -> " + mainConfig.Downdir)
 	}
 
 }
@@ -762,33 +819,19 @@ func downloadSingle(path string, server string, size int64) {
 // If authentication needed it will get password from user
 func handleAuth(c *common.Connection) common.Message {
 	var m common.Message
-	pw := common.ReadPassword()
+	var password string
+	if pw == "" {
+		fmt.Println("Server wants password:")
+		password = string(common.ReadPassword())
+		pw = password
+	} else {
+		password = pw
+	}
 
-	c.SendString(string(pw))
+	c.SendString(password)
 	c.Read().GetMessage(&m)
 	if m != common.Success {
 		log.Fatal("Authentication error.")
 	}
 	return common.Success
-}
-
-func createProgress(name string, total int, completed chan int) {
-
-	total = total / 30000
-
-	for progress := range completed {
-		progress = progress / 30000
-
-		msg := "PROGRESS " + name + " -> "
-
-		for i := 0; i < progress; i++ {
-			msg += "="
-		}
-
-		for i := progress; i < total; i++ {
-			msg += "-"
-		}
-		fmt.Print("\033[F\033[K")
-		fmt.Println(msg)
-	}
 }

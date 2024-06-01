@@ -76,8 +76,15 @@ func handleConnection(conn net.Conn) {
 		}
 		if lib.MainConfig.ReadPerm == lib.ReadPermIp {
 			var allowed bool
+			var ip string
+			address := conn.RemoteAddr().String()
+			for i := range address {
+				if address[i] == ':' {
+					ip = address[:i]
+				}
+			}
 			for _, v := range lib.MainConfig.AllowedIps {
-				if v == conn.RemoteAddr().String() {
+				if v == ip {
 					allowed = true
 					break
 				}
@@ -224,8 +231,15 @@ func handleConnection(conn net.Conn) {
 		}
 		if lib.MainConfig.WritePerm == lib.WritePermIp {
 			var allowed bool
+			var ip string
+			address := conn.RemoteAddr().String()
+			for i := range address {
+				if address[i] == ':' {
+					ip = address[:i]
+				}
+			}
 			for _, v := range lib.MainConfig.AllowedIps {
-				if v == conn.RemoteAddr().String() {
+				if v == ip {
 					allowed = true
 					break
 				}

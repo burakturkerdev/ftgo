@@ -397,22 +397,11 @@ func pushFileToServer(fp string, c *common.Connection) error {
 	}
 	defer file.Close()
 
-	stat, err := os.Stat(fp)
-	if err != nil {
-		return err
-	}
-
 	reader := bufio.NewReader(file)
 
 	buffer := make([]byte, common.ExchangeBufferSize)
 
 	send := 0
-
-	ch := make(chan int)
-
-	defer close(ch)
-
-	go createProgress(fp, int(stat.Size()/common.ExchangeBufferSize), ch)
 
 	for {
 		readed, err := reader.Read(buffer)
@@ -456,7 +445,6 @@ func pushFileToServer(fp string, c *common.Connection) error {
 			return errors.New(d)
 		}
 		send++
-		ch <- send
 	}
 }
 
@@ -594,84 +582,27 @@ func (r *ConnectResolver) Resolve(head *common.LinkedCommand) {
 				if v.Name == arg {
 					valid = true
 					// BIG TODO
-					if v.IsDir {
+					var downloadDirectory string
+					if currentDirectory != "/" {
+						downloadDirectory = currentDirectory + "/" + arg
 
 					} else {
-						// AUTHENTICATION IMPL TO-DO
-						c, err := net.Dial("tcp", address)
+						downloadDirectory = currentDirectory + arg
+
+					}
+
+					if v.IsDir {
+
+						infos, err = listDirs(downloadDirectory, address)
 
 						if err != nil {
-							fmt.Println(arg+" can't be downloaded.", err.Error())
+							fmt.Println(arg+" can't be fully downloaded", err.Error())
 
 						}
-						defer c.Close()
-						con := common.CreateConnection(c)
 
-						con.SendMessageWithString(common.CDownload, currentDirectory+"/"+arg)
-
-						var m common.Message
-
-						con.Read().GetMessage(&m)
-
-						if m == common.SAuthenticate {
-							m = handleAuth(con)
-						}
-
-						if m != common.Success {
-							fmt.Println(arg+" can't be downloaded.", err.Error())
-						}
-
-						path := mainConfig.Downdir + currentDirectory + "/" + arg
-
-						for i := len(path) - 1; i >= 0; i-- {
-							if path[i] == '/' {
-								os.MkdirAll(path[:i], 0755)
-								break
-							}
-						}
-
-						file, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0755)
-
-						if err != nil {
-							fmt.Println(arg+"can't be downloaded.", err.Error())
-						}
-						//Starting to read buffer
-
-						buffer := make([]byte, common.ExchangeBufferSize)
-
-						readStarted := false
-
-						read := 0
-
-						ch := make(chan int)
-						defer close(ch)
-
-						go createProgress(arg, int(v.Size), ch)
-						for {
-
-							con.Read().GetMessage(&m)
-							if m != common.Completed && !con.EOF {
-								if !readStarted {
-									file.Truncate(0)
-									readStarted = true
-								}
-
-								con.GetData(&buffer)
-								_, err = file.Write(buffer)
-
-								if err != nil {
-									fmt.Println("Can't write to file!")
-									return
-								}
-								con.SendMessage(common.Success)
-								read++
-								ch <- read
-							} else {
-								fmt.Println(arg + " download DONE!")
-								con.SendMessage(common.Completed)
-								break
-							}
-						}
+						recursiveDownload(downloadDirectory, address)
+					} else {
+						downloadSingle(downloadDirectory, address, v.Size)
 					}
 
 					break
@@ -728,6 +659,104 @@ func listDirs(path string, server string) ([]common.FileInfo, error) {
 	con.Close()
 
 	return infos, nil
+}
+
+func recursiveDownload(path string, server string) error {
+	infos, err := listDirs(path, server)
+	if err != nil {
+		return errors.New("something happened when trying to download this")
+	}
+
+	for _, v := range infos {
+		newPath := path
+		if path == "/" {
+			newPath += v.Name
+		} else {
+			newPath += "/" + v.Name
+		}
+
+		if v.IsDir {
+			go recursiveDownload(newPath, server)
+		} else {
+			go downloadSingle(newPath, server, v.Size)
+		}
+	}
+	return nil
+}
+
+func downloadSingle(path string, server string, size int64) {
+	c, err := net.Dial("tcp", server)
+
+	if err != nil {
+		fmt.Println(path+" can't be downloaded.", err.Error())
+
+	}
+	defer c.Close()
+	con := common.CreateConnection(c)
+
+	con.SendMessageWithString(common.CDownload, path)
+
+	var m common.Message
+
+	con.Read().GetMessage(&m)
+
+	if m == common.SAuthenticate {
+		m = handleAuth(con)
+	}
+
+	if m != common.Success {
+		fmt.Println(path+" can't be downloaded.", err.Error())
+		return
+	}
+
+	userPath := mainConfig.Downdir + path
+	for i := len(userPath) - 1; i >= 0; i-- {
+		if userPath[i] == '/' {
+			os.MkdirAll(userPath[:i], 0755)
+			break
+		}
+	}
+
+	file, err := os.OpenFile(userPath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0755)
+
+	if err != nil {
+		fmt.Println(userPath+" can't be downloaded.", err.Error())
+		return
+	}
+	//Starting to read buffer
+
+	buffer := make([]byte, common.ExchangeBufferSize)
+
+	readStarted := false
+
+	read := 0
+
+	for {
+		con.Read().GetMessage(&m)
+		if m != common.Completed && !con.EOF {
+
+			if !readStarted {
+				file.Truncate(0)
+				readStarted = true
+			}
+
+			con.GetData(&buffer)
+			_, err = file.Write(buffer)
+
+			if err != nil {
+
+				fmt.Println("Can't write to file!")
+				return
+			}
+			con.SendMessage(common.Success)
+			read++
+		} else {
+			fmt.Println(path + " download DONE!")
+			con.SendMessage(common.Completed)
+			break
+		}
+	}
+
 }
 
 // If authentication needed it will get password from user

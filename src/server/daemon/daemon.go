@@ -130,8 +130,6 @@ func handleConnection(conn net.Conn) {
 				}
 				fileinfos[i] = common.FileInfo{Name: f.Name(), IsDir: f.IsDir(), Size: size}
 			} else {
-				//stat, err := os.Stat(absolutePath + f.Name())
-
 				if err != nil {
 					fmt.Println("Log => Can't get size of file.")
 				}
@@ -172,7 +170,6 @@ func handleConnection(conn net.Conn) {
 		readLoop := 0
 
 		for {
-
 			readed, err := reader.Read(buffer)
 
 			if err != nil && err != io.EOF {

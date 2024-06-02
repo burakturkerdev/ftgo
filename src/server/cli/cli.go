@@ -1,8 +1,8 @@
 package main
 
 import (
-	"burakturkerdev/ftgo/src/common"
-	"burakturkerdev/ftgo/src/server/lib"
+	"burakturkerdev/ftgo/common"
+	"burakturkerdev/ftgo/server/lib"
 	"fmt"
 	"log"
 	"net"

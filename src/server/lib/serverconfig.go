@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"burakturkerdev/ftgo/src/common"
+	"burakturkerdev/ftgo/common"
 	"os"
 	"os/exec"
 	"path/filepath"

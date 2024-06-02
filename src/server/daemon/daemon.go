@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	"burakturkerdev/ftgo/src/common"
-	"burakturkerdev/ftgo/src/server/lib"
+	"burakturkerdev/ftgo/common"
+	"burakturkerdev/ftgo/server/lib"
 	"fmt"
 	"io"
 	"log"

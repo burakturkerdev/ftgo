@@ -1,7 +1,7 @@
 package main
 
 import (
-	"burakturkerdev/ftgo/src/common"
+	"burakturkerdev/ftgo/common"
 	"os"
 )
 

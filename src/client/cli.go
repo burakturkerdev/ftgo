@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"burakturkerdev/ftgo/src/common"
+	"burakturkerdev/ftgo/common"
 	"errors"
 	"fmt"
 	"io"

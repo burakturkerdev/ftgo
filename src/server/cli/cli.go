@@ -19,6 +19,7 @@ var resolvers = map[string]common.Resolver{
 	"port":   &PortResolver{},
 	"dir":    &DirResolver{},
 	"perm":   &PermResolver{},
+	"help":   &HelpResolver{},
 }
 
 // Serve
@@ -465,5 +466,33 @@ func (r PermResolver) Resolve(head *common.LinkedCommand) {
 
 			setNewPassword()
 		}
+	}
+}
+
+type HelpResolver struct{}
+
+func (r HelpResolver) Resolve(head *common.LinkedCommand) {
+	lines := []string{
+		"\033[0mftgosv serve                               \033[32mStarts server daemon for serving\033[0m",
+		"ftgosv status                              \033[32mLists all server information\033[0m",
+		"ftgosv port add -PORT                      \033[32mAdds port for listening\033[0m",
+		"ftgosv port rm -PORT                       \033[32mRemoves port\033[0m",
+		"ftgosv port list                           \033[32mLists all ports\033[0m",
+		"ftgosv dir set -PATH                       \033[32mSets the serving directory\033[0m",
+		"ftgosv dir get                             \033[32mGets the serving directory\033[0m",
+		"ftgosv perm write set -PERM                \033[32mSets the permission for write operations\033[0m",
+		"ftgosv perm write get                      \033[32mGets the permission for write operations\033[0m",
+		"ftgosv perm read set -PERM                 \033[32mSets the permission for read operations\033[0m",
+		"ftgosv perm read get                       \033[32mGets the permission for read operations\033[0m",
+		"ftgosv perm list -PERM                     \033[32mLists all usable permissions\033[0m",
+		"ftgosv perm ip add -IP                     \033[32mAdds IP for IP-based permission\033[0m",
+		"ftgosv perm ip rm -IP                      \033[32mRemoves IP from allowed IP list\033[0m",
+		"ftgosv perm ip list                        \033[32mLists allowed IPs\033[0m",
+		"ftgosv perm password set -PASSWORD         \033[32mSets password for password authentication permission\033[0m",
+		"\033[31mDo not forget putting '-' before args!\033[31m",
+	}
+
+	for _, line := range lines {
+		fmt.Println(line)
 	}
 }

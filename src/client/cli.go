@@ -20,6 +20,7 @@ var resolvers = map[string]common.Resolver{
 	"push":    &PushResolver{},
 	"connect": &ConnectResolver{},
 	"dir":     &DirResolver{},
+	"help":    &HelpResolver{},
 }
 
 type ServerResolver struct{}
@@ -875,5 +876,30 @@ func createProgressInfo(fName string, total int64, progress chan int64) {
 			ratio = 0
 		}
 		fmt.Println(fName + " -> " + strconv.Itoa(int(ratio)) + "%")
+	}
+}
+
+type HelpResolver struct{}
+
+func (r HelpResolver) Resolve(head *common.LinkedCommand) {
+	lines := []string{
+		"\033[0mftgo server add -SERVERNAME -SERVERADDRESS \033[32mAdds server to list for using again\033[0m",
+		"ftgo server list                           \033[32mLists all servers saved to client\033[0m",
+		"ftgo server rm -SERVERNAME                 \033[32mRemoves server from client\033[0m",
+		"ftgo package new -PACKAGENAME              \033[32mCreates new package\033[0m",
+		"ftgo package add -PACKAGENAME -PATH        \033[32mAdds file or directory to package\033[0m",
+		"ftgo package rm -PACKAGENAME               \033[32mRemoves package\033[0m",
+		"ftgo package rm -PACKAGENAME -FILE/DIRECTORY \033[32mRemoves file or directory from package\033[0m",
+		"ftgo package list -PACKAGENAME             \033[32mAdds file or directory to package\033[0m",
+		"ftgo package push -PACKAGENAME [-SERVERNAME or -SERVERADDRESS] \033[32mPushes package to server\033[0m",
+		"ftgo push -FILE/DIRECTORY [-SERVERNAME or -SERVERADDRESS] \033[32mPushes file or directory to server\033[0m",
+		"ftgo server connect [-SERVERNAME or -SERVERADDRESS] \033[32mConnects to server and lists all files and directories\033[0m",
+		"ftgo dir set -PATH                         \033[32mSets the default directory for pulling\033[0m",
+		"ftgo dir get                                \033[32mGets the default directory for pulling\033[0m",
+		"\033[31mDo not forget putting '-' before args!\033[31m",
+	}
+
+	for _, line := range lines {
+		fmt.Println(line)
 	}
 }
